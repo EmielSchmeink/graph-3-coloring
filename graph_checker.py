@@ -27,8 +27,20 @@ class GraphChecker:
 
         return False
 
-    def check_induced_cycle(self, graph, n):
-        pass
+    def check_induced_cycle(self, graph, c):
+        if c == 3:
+            for key, value in nx.triangles(graph).items():
+                if value > 0:
+                    return True
+            return False
+
+        cycles = nx.cycle_basis(graph)
+        for cycle in cycles:
+            if len(cycle) == c:
+                return True
+
+        return False
 
     def check_planar(self, graph):
-        pass
+        return nx.check_planarity(graph)[0]
+
