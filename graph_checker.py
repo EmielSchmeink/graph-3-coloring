@@ -7,7 +7,7 @@ class InvalidGraphException(Exception):
 
 
 class GraphChecker:
-    def sanity_check_graph(self, graph, path_length=None, cycle_size=None, planarity=None):
+    def sanity_check_graph(self, graph, path_length=None, cycle_size=None, planarity=None, diameter=None):
         if planarity is not None:
             planar = self.graph_check_planar(graph)
             print("Planar: {}".format(planar))
@@ -29,6 +29,16 @@ class GraphChecker:
             if contains_induced_path:
                 raise InvalidGraphException("Graph had a path of size {}".format(path_length))
 
+        if diameter is not None:
+            diameter_smaller_or_equal = self.graph_check_diameter(graph, diameter)
+            print("Graph diameter {} should be smaller than {}: {}".format(nx.diameter(graph), diameter, diameter_smaller_or_equal))
+
+            # The diameter of the graph should be smaller or equal than the given diameter, so negate
+            if not diameter_smaller_or_equal:
+                raise InvalidGraphException(
+                    "Graph had a diameter of size {}, while {} is required".format(nx.diameter(graph), diameter)
+                )
+
     def graph_check_induced_path(self, graph, n):
         for node in graph:
             if self.check_induced_path(graph, node, n):
@@ -39,6 +49,7 @@ class GraphChecker:
     @staticmethod
     def graph_check_induced_cycle(graph, c):
         if c == 3:
+            # If any of the nodes contain a triangle, we got one
             for key, value in nx.triangles(graph).items():
                 if value > 0:
                     return True
@@ -56,11 +67,16 @@ class GraphChecker:
         return nx.is_planar(graph)
 
     @staticmethod
+    def graph_check_diameter(graph, d):
+        return nx.diameter(graph) <= d
+
+    @staticmethod
     def check_induced_path(graph, node, n):
         # Remove the source as a target
         vertices_without_source = list(graph.nodes)
         vertices_without_source.remove(node)
 
+        # Only get the paths with the size we care for
         correct_size_paths = [path for path in nx.all_simple_paths(graph, node, vertices_without_source, cutoff=n-1)
                               if len(path) == n]
 
