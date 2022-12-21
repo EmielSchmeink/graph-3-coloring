@@ -1,77 +1,96 @@
 import os
 import random
-import time
-from itertools import combinations
+import itertools
+from datetime import datetime
 
-import matplotlib.pyplot as plt
 import networkx as nx
 
 from graph_checker import GraphChecker
+from graph_printer import draw_graph
+
+checker = GraphChecker()
 
 
-def triangle_free_graph(total_nodes):
-    """Construct a triangle free graph."""
-    nodes = range(total_nodes)
-    g = nx.Graph()
-    g.add_nodes_from(nodes)
-    edge_candidates = list(combinations(nodes, 2))
-    random.shuffle(edge_candidates)
-    for (u, v) in edge_candidates:
-        if not set(n for n in g.neighbors(u)) & set(n for n in g.neighbors(v)):
-            g.add_edge(u, v)
-    return g
-
-
-def draw_graph(graph):
-    nx.draw(graph, with_labels=True)
-    plt.show()
-
-
-def write_graph(graph):
-    path = "./graphs/graph-{}.txt".format(time.time())
+def write_graph(graph, p, path_length, cycle_size, planarity):
+    path = "./graphs/graph-nodes-{}-p-{}-path-{}-cycle-{}-planar-{}-{}.txt".format(
+        graph.number_of_nodes(),
+        p,
+        path_length,
+        cycle_size,
+        planarity,
+        datetime.now().strftime("%d-%m-%Y-%H:%M:%S")
+    )
     if not os.path.exists("./graphs/"):
         os.makedirs("./graphs/")
     nx.write_adjlist(graph, path)
 
 
-def find_graphs_with_conditions(nodes, graphs_to_be_found, path_length=None, cycle_size=None, planarity=None):
+def erdos_renyi_with_checks(n, p, path_length=None, cycle_size=None, planarity=None, seed=None):
+    random.seed(seed)
+
+    # All combinations of vertices that could become an edge
+    edges = itertools.combinations(range(n), 2)
+    g = nx.Graph()
+
+    # Add all n vertices to the graph without edges
+    g.add_nodes_from(range(n))
+
+    for e in edges:
+        # For each edge randomly make it a candidate
+        if random.random() >= p:
+            continue
+
+        # If it is a candidate, add it to the graph and do the required checks
+        g.add_edge(*e)
+
+        # If the edge breaks a requirement, remove it and start with a new edge
+        if planarity is not None:
+            planar = checker.graph_check_planar(g)
+
+            if planar != planarity:
+                g.remove_edge(e[0], e[1])
+                continue
+
+        if cycle_size is not None:
+            contains_induced_cycle = checker.check_induced_cycle(g, e[0], cycle_size)
+
+            if contains_induced_cycle:
+                g.remove_edge(e[0], e[1])
+                continue
+
+        if path_length is not None:
+            # TODO check why the individual induced path check doesn't work (sometimes produces induced paths)
+            contains_induced_path = checker.graph_check_induced_path(g, path_length)
+
+            if contains_induced_path:
+                g.remove_edge(e[0], e[1])
+                continue
+
+        print("Edge {} was okay".format(e))
+
+    # Sanity check graph
+    checker.sanity_check_graph(g, path_length, cycle_size, planarity)
+
+    return g
+
+
+def find_graphs_with_conditions(nodes, p, graphs_to_be_found, path_length=None, cycle_size=None, planarity=None):
     seed = -1
 
+    # If we need multiple graphs, we continue until the required amount is found
     while graphs_to_be_found > 0:
         seed += 1
         print("Seed: {}".format(seed))
 
-        # graph = nx.generators.erdos_renyi_graph(15, 0.2, seed=seed)
-        graph = triangle_free_graph(nodes)
-
-        if planarity is not None:
-            planar = GraphChecker().check_planar(graph)
-            print("Planar: {}".format(planar))
-
-            if planar != planarity:
-                continue
-
-        if cycle_size is not None:
-            contains_induced_cycle = GraphChecker().check_induced_cycle(graph, cycle_size)
-            print("Contains induced cycle of length {}: {}".format(cycle_size, contains_induced_cycle))
-
-            if contains_induced_cycle:
-                continue
-
-        if path_length is not None:
-            contains_induced_path = GraphChecker().check_induced_path(graph, path_length)
-            print("Contains induced path of length {}: {}".format(path_length, contains_induced_path))
-
-            if contains_induced_path:
-                continue
+        graph = erdos_renyi_with_checks(nodes, p, path_length, cycle_size, planarity, seed=seed)
 
         # Graph passed all checks, save it
         draw_graph(graph)
 
         # Save the graph to file
-        write_graph(graph)
+        write_graph(graph, p, path_length, cycle_size, planarity)
 
         graphs_to_be_found -= 1
 
 
-find_graphs_with_conditions(nodes=40, graphs_to_be_found=1, path_length=4, cycle_size=5, planarity=None)
+find_graphs_with_conditions(nodes=50, p=0.5, graphs_to_be_found=1, path_length=7, cycle_size=3, planarity=None)
