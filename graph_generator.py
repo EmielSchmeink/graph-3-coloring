@@ -1,3 +1,4 @@
+import os
 import random
 import time
 from itertools import combinations
@@ -19,6 +20,18 @@ def triangle_free_graph(total_nodes):
         if not set(n for n in g.neighbors(u)) & set(n for n in g.neighbors(v)):
             g.add_edge(u, v)
     return g
+
+
+def draw_graph(graph):
+    nx.draw(graph, with_labels=True)
+    plt.show()
+
+
+def write_graph(graph):
+    path = "./graphs/graph-{}.txt".format(time.time())
+    if not os.path.exists("./graphs/"):
+        os.makedirs("./graphs/")
+    nx.write_adjlist(graph, path)
 
 
 def find_graphs_with_conditions(nodes, graphs_to_be_found, path_length=None, cycle_size=None, planarity=None):
@@ -53,11 +66,12 @@ def find_graphs_with_conditions(nodes, graphs_to_be_found, path_length=None, cyc
                 continue
 
         # Graph passed all checks, save it
-        nx.draw(graph, with_labels=True)
-        plt.show()
-        nx.write_adjlist(graph, "./graphs/graph-{}.txt".format(time.time()))
+        draw_graph(graph)
+
+        # Save the graph to file
+        write_graph(graph)
 
         graphs_to_be_found -= 1
 
 
-find_graphs_with_conditions(nodes=15, graphs_to_be_found=1, path_length=None, cycle_size=3, planarity=True)
+find_graphs_with_conditions(nodes=40, graphs_to_be_found=1, path_length=4, cycle_size=5, planarity=None)
