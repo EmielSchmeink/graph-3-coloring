@@ -78,7 +78,7 @@ class GraphGenerator:
 
         return g
 
-    def find_graphs_with_conditions(self, nodes, p, graphs_to_be_found,
+    def find_graphs_with_conditions(self, nodes, graphs_to_be_found, p,
                                     path_length=None, cycle_size=None, planar=None, diameter=None):
         seed = -1
 
@@ -98,12 +98,21 @@ class GraphGenerator:
             graphs_to_be_found -= 1
 
 
-GraphGenerator(checker=GraphChecker).find_graphs_with_conditions(
-    nodes=50,
-    p=0.5,
-    graphs_to_be_found=1,
-    path_length=None,
-    cycle_size=3,
-    planar=True,
-    diameter=None
-)
+graph_generator = GraphGenerator(checker=GraphChecker)
+
+configurations = [
+    [0.3, None, 3, True, None],
+    [0.5, None, 3, True, None],
+    [0.8, None, 3, True, None],
+    [0.3, 4, 5, None, None],
+    [0.5, 4, 5, None, None],
+    [0.8, 4, 5, None, None],
+    [0.3, 7, 3, None, None],
+    [0.5, 7, 3, None, None],
+    [0.8, 7, 3, None, None],
+]
+
+for config in configurations:
+    for n in [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]:
+        graph_generator.find_graphs_with_conditions(n, 1, config[0], config[1], config[2], config[3], config[4])
+
