@@ -7,6 +7,7 @@ import networkx as nx
 
 from graph_checker import GraphChecker
 from graph_printer import draw_graph
+from sat import solve
 
 
 class GraphGenerator:
@@ -49,27 +50,18 @@ class GraphGenerator:
             g.add_edge(*e)
 
             # If the edge breaks a requirement, remove it and start with a new edge
-            if planar is not None:
-                is_graph_planar = self.checker.graph_check_planar(g)
+            if planar is not None and planar != self.checker.graph_check_planar(g):
+                g.remove_edge(e[0], e[1])
+                continue
 
-                if is_graph_planar != planar:
-                    g.remove_edge(e[0], e[1])
-                    continue
+            if cycle_size is not None and self.checker.check_induced_cycle(g, e[0], cycle_size):
+                g.remove_edge(e[0], e[1])
+                continue
 
-            if cycle_size is not None:
-                contains_induced_cycle = self.checker.check_induced_cycle(g, e[0], cycle_size)
-
-                if contains_induced_cycle:
-                    g.remove_edge(e[0], e[1])
-                    continue
-
-            if path_length is not None:
+            if path_length is not None and self.checker.graph_check_induced_path(g, path_length):
                 # TODO check why the individual induced path check doesn't work (sometimes produces induced paths)
-                contains_induced_path = self.checker.graph_check_induced_path(g, path_length)
-
-                if contains_induced_path:
-                    g.remove_edge(e[0], e[1])
-                    continue
+                g.remove_edge(e[0], e[1])
+                continue
 
             print("Edge {} was okay".format(e))
 
@@ -78,41 +70,37 @@ class GraphGenerator:
 
         return g
 
-    def find_graphs_with_conditions(self, nodes, graphs_to_be_found, p,
-                                    path_length=None, cycle_size=None, planar=None, diameter=None):
-        seed = -1
+    def find_graphs_with_conditions(self, nodes, p,
+                                    path_length=None, cycle_size=None, planar=None, diameter=None, seed=0):
+        print("Seed: {}".format(seed))
+        graph = self.erdos_renyi_with_checks(nodes, p, path_length, cycle_size, planar, diameter, seed=seed)
 
-        # If we need multiple graphs, we continue until the required amount is found
-        while graphs_to_be_found > 0:
-            seed += 1
-            print("Seed: {}".format(seed))
+        # Graph passed all checks, save it
+        draw_graph(graph, None)
 
-            graph = self.erdos_renyi_with_checks(nodes, p, path_length, cycle_size, planar, diameter, seed=seed)
+        # Save the graph to file
+        self.write_graph(graph, p, path_length, cycle_size, planar, diameter)
 
-            # Graph passed all checks, save it
-            draw_graph(graph)
-
-            # Save the graph to file
-            self.write_graph(graph, p, path_length, cycle_size, planar, diameter)
-
-            graphs_to_be_found -= 1
+        return graph
 
 
 graph_generator = GraphGenerator(checker=GraphChecker)
 
 configurations = [
-    [0.3, None, 3, True, None],
-    [0.5, None, 3, True, None],
-    [0.8, None, 3, True, None],
-    [0.3, 4, 5, None, None],
-    [0.5, 4, 5, None, None],
-    [0.8, 4, 5, None, None],
-    [0.3, 7, 3, None, None],
-    [0.5, 7, 3, None, None],
-    [0.8, 7, 3, None, None],
+    # [0.3, None, 3, True, None],
+    # [0.5, None, 3, True, None],
+    # [0.8, None, 3, True, None],
+    [0.15, 4, 5, None, None],
+    # [0.5, 4, 5, None, None],
+    # [0.8, 4, 5, None, None],
+    # [0.3, 7, 3, None, None],
+    # [0.5, 7, 3, None, None],
+    # [0.8, 7, 3, None, None],
 ]
 
 for config in configurations:
-    for n in [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]:
-        graph_generator.find_graphs_with_conditions(n, 1, config[0], config[1], config[2], config[3], config[4])
+    for n in [100]:
+        g = graph_generator.find_graphs_with_conditions(n, config[0], config[1], config[2], config[3], config[4])
 
+colors = solve(g.edges, len(g.nodes))
+draw_graph(g, colors)
