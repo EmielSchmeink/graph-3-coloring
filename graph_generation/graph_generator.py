@@ -1,6 +1,6 @@
+import itertools
 import os
 import random
-import itertools
 from datetime import datetime
 
 import networkx as nx
