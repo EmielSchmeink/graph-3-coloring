@@ -10,33 +10,33 @@ class GraphChecker:
     def sanity_check_graph(self, graph, path_length=None, cycle_size=None, planarity=None, diameter=None):
         if planarity is not None:
             planar = self.graph_check_planar(graph)
-            print("Planar: {}".format(planar))
+            print(f"Planar: {planar}")
 
             if planar != planarity:
                 raise InvalidGraphException("Graph wasn't correct planarity")
 
         if cycle_size is not None:
             contains_induced_cycle = self.graph_check_induced_cycle(graph, cycle_size)
-            print("Contains induced cycle of length {}: {}".format(cycle_size, contains_induced_cycle))
+            print(f"Contains induced cycle of length {cycle_size}: {contains_induced_cycle}")
 
             if contains_induced_cycle:
-                raise InvalidGraphException("Graph had a cycle of size {}".format(cycle_size))
+                raise InvalidGraphException(f"Graph had a cycle of size {cycle_size}")
 
         if path_length is not None:
             contains_induced_path = self.graph_check_induced_path(graph, path_length)
-            print("Contains induced path of length {}: {}".format(path_length, contains_induced_path))
+            print(f"Contains induced path of length {path_length}: {contains_induced_path}")
 
             if contains_induced_path:
-                raise InvalidGraphException("Graph had a path of size {}".format(path_length))
+                raise InvalidGraphException(f"Graph had a path of size {path_length}")
 
         if diameter is not None:
             diameter_smaller_or_equal = self.graph_check_diameter(graph, diameter)
-            print("Graph diameter {} should be smaller than {}: {}".format(nx.diameter(graph), diameter, diameter_smaller_or_equal))
+            print(f"Graph diameter {nx.diameter(graph)} should be smaller than {diameter}: {diameter_smaller_or_equal}")
 
             # The diameter of the graph should be smaller or equal than the given diameter, so negate
             if not diameter_smaller_or_equal:
                 raise InvalidGraphException(
-                    "Graph had a diameter of size {}, while {} is required".format(nx.diameter(graph), diameter)
+                    f"Graph had a diameter of size {nx.diameter(graph)}, while {diameter} is required"
                 )
 
     def graph_check_induced_path(self, graph, n):

@@ -53,7 +53,3 @@ def solve(edges, n):
 
     print(s.model())
     return colors
-
-
-
-
