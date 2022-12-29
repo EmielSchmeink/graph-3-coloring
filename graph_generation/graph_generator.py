@@ -5,8 +5,6 @@ from datetime import datetime
 
 import networkx as nx
 
-from .graph_drawer import draw_graph
-
 
 class GraphGenerator:
     checker = None
@@ -67,9 +65,6 @@ class GraphGenerator:
         graph = self.erdos_renyi_with_checks(nodes, p, path_length, cycle_size, planar, diameter, seed=seed)
 
         # Graph passed all checks, save it
-        draw_graph(graph, None)
-
-        # Save the graph to file
         self.write_graph(graph, p, path_length, cycle_size, planar, diameter)
 
         return graph
