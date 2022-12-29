@@ -7,6 +7,13 @@ class InvalidGraphException(Exception):
 
 
 class GraphChecker:
+    @staticmethod
+    def valid_3_coloring(graph, coloring):
+        # Check that max 3 colors are used, and it is a valid coloring
+        max_3 = len(set(coloring)) <= 3
+        invalid_coloring = any([coloring[int(x)] == coloring[int(y)] for (x, y) in graph.edges()])
+        return max_3 and not invalid_coloring
+
     def sanity_check_graph(self, graph, path_length=None, cycle_size=None, planarity=None, diameter=None):
         if planarity is not None:
             planar = self.graph_check_planar(graph)

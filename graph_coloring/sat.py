@@ -1,7 +1,12 @@
-from z3 import *
+from z3.z3 import *
+
+from graph_coloring.exceptions import InvalidColoringException, sanity_check_coloring
 
 
-def solve(edges, n):
+def sat_solve(graph):
+    edges = graph.edges()
+    n = len(graph.nodes)
+
     s = Solver()
 
     print('Making formula...')
@@ -52,4 +57,6 @@ def solve(edges, n):
             colors.append('blue')
 
     print(s.model())
+    sanity_check_coloring(graph, colors)
+
     return colors
