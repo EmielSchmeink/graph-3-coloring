@@ -15,7 +15,7 @@ class GraphGenerator:
     @staticmethod
     def write_graph(graph, p, path_length, cycle_size, planar, diameter):
         path = f"./graphs/graph-nodes-{graph.number_of_nodes()}-p-{p}-path-{path_length}-cycle-{cycle_size}-diameter-" \
-               f"{diameter}-planar-{planar}-{datetime.now().strftime('%d-%m-%Y-%H:%M:%S')}.txt "
+               f"{diameter}-planar-{planar}-{datetime.now().strftime('%d-%m-%Y-%H:%M:%S')}.txt"
         if not os.path.exists("graphs/"):
             os.makedirs("graphs/")
         nx.write_adjlist(graph, path)

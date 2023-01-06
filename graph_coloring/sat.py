@@ -36,9 +36,9 @@ def sat_solve(graph):
     is_sat = s.check()
 
     if is_sat == sat:
-        print('3-coloring possible, evaluating model...')
+        print('SAT: 3-coloring possible, evaluating model...')
     elif is_sat == unsat:
-        print('No 3-coloring possible!')
+        print('SAT: No 3-coloring possible!')
         return None
 
     model = s.model()
