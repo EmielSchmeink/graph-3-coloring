@@ -42,8 +42,5 @@ def color_dsatur(graph):
 
 
 for config in configurations:
-    for n in [20]:
+    for n in [1000]:
         g = graph_generator.find_graphs_with_conditions(n, config[0], config[1], config[2], config[3], config[4])
-
-        color_sat(g)
-        color_dsatur(g)
