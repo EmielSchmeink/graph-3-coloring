@@ -59,12 +59,23 @@ class GraphGenerator:
 
         return g
 
-    def find_graphs_with_conditions(self, nodes, p,
-                                    path_length=None, cycle_size=None, planar=None, diameter=None, seed=0):
-        print(f"Seed: {seed}")
-        graph = self.erdos_renyi_with_checks(nodes, p, path_length, cycle_size, planar, diameter, seed=seed)
+    def find_graphs_with_conditions(self, queue, seed=0):
+        # While there are tasks to do, keep running
+        while not queue.empty():
+            # Get the versions to compare
+            nodes, p, path_length, cycle_size, planar, diameter = queue.get()
 
-        # Graph passed all checks, save it
-        self.write_graph(graph, p, path_length, cycle_size, planar, diameter)
+            print(
+                f"Starting thread, amount of nodes: {nodes}, "
+                f"p: {p}, path_length: {path_length}, "
+                f"cycle_size: {cycle_size}, "
+                f"planar: {planar}, "
+                f"diameter {diameter}"
+            )
 
-        return graph
+            graph = self.erdos_renyi_with_checks(nodes, p, path_length, cycle_size, planar, diameter, seed=seed)
+
+            # Graph passed all checks, save it
+            self.write_graph(graph, p, path_length, cycle_size, planar, diameter)
+
+            queue.task_done()
