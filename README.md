@@ -1,1 +1,1 @@
-# graph-generation
+# graph-3-coloring
