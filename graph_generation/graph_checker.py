@@ -48,7 +48,7 @@ class GraphChecker:
 
     def graph_check_induced_path(self, graph, n):
         for node in graph:
-            if self.check_induced_path(graph, node, n):
+            if self.check_induced_path_old(graph, node, n):
                 return True
 
         return False
@@ -78,7 +78,7 @@ class GraphChecker:
         return nx.diameter(graph) <= d
 
     @staticmethod
-    def check_induced_path(graph, node, n):
+    def check_induced_path_old(graph, node, n):
         # Remove the source as a target
         vertices_without_source = list(graph.nodes)
         vertices_without_source.remove(node)
@@ -95,6 +95,123 @@ class GraphChecker:
             # The found path is an actual induced path, and does not contain cycles in
             if len(induced_path_cycles) == 0:
                 return True
+
+    @staticmethod
+    def get_paths_with_cycles(graph, paths):
+        cycle_paths = []
+
+        # For all paths check whether any node contains an edge to another node in the path, thus creating a cycle
+        for path in paths:
+            if len(path) == 2 or len(path) == 3:
+                continue
+
+            it = iter(path)
+
+            for node in it:
+                second_node = next(it, None)
+                third_node = next(it, None)
+
+                if second_node is None or third_node is None:
+                    continue
+
+                path_without_neighbors = path.copy()
+                path_without_neighbors.remove(node)
+                path_without_neighbors.remove(second_node)
+                path_without_neighbors.remove(third_node)
+
+                for path_node in path_without_neighbors:
+                    if graph.has_edge(node, path_node) \
+                            or graph.has_edge(second_node, path_node) \
+                            or graph.has_edge(third_node, path_node):
+                        cycle_paths.append(path)
+
+        return cycle_paths
+
+    @staticmethod
+    def get_paths_with_new_edge(paths, edge_node):
+        paths_with_new_edge = []
+
+        for path in paths:
+            if path[1] == edge_node:
+                paths_with_new_edge.append(path)
+
+        return paths_with_new_edge
+
+    @staticmethod
+    def check_induced_subpath(graph, path):
+        # Check for each path if the simple path is an actual induced path
+        induced_possible_path = nx.induced_subgraph(graph, path)
+        induced_path_cycles = nx.cycle_basis(induced_possible_path)
+
+        # The found path is an actual induced path, and does not contain cycles
+        if len(induced_path_cycles) == 0:
+            return True
+
+        return False
+
+    def check_induced_path(self, graph, edge, n):
+        # Remove the source as a target
+        vertices_without_source_0 = list(graph.nodes)
+        vertices_without_source_1 = list(graph.nodes)
+        vertices_without_source_0.remove(edge[0])
+        vertices_without_source_1.remove(edge[1])
+
+        all_paths_0 = [path for path in nx.all_simple_paths(graph, edge[0], vertices_without_source_0, cutoff=n - 1)]
+        all_paths_1 = [path for path in nx.all_simple_paths(graph, edge[1], vertices_without_source_1, cutoff=n - 1)]
+
+        # Separate the paths containing the new edge, and paths not containing the new edge
+        filtered_paths_0_with_new_edge = self.get_paths_with_new_edge(all_paths_0, edge[1])
+        filtered_paths_1_with_new_edge = self.get_paths_with_new_edge(all_paths_1, edge[0])
+
+        for path in filtered_paths_0_with_new_edge:
+            if len(path) == n and self.check_induced_subpath(graph, path):
+                return True
+
+        for path in filtered_paths_1_with_new_edge:
+            if len(path) == n and self.check_induced_subpath(graph, path):
+                return True
+
+        # Get the paths with cycles
+        cycle_paths_0 = self.get_paths_with_cycles(graph, all_paths_0)
+        cycle_paths_1 = self.get_paths_with_cycles(graph, all_paths_1)
+
+        all_paths_to_be_removed_0 = filtered_paths_0_with_new_edge
+        all_paths_to_be_removed_1 = filtered_paths_1_with_new_edge
+
+        for path in cycle_paths_0:
+            if path not in all_paths_to_be_removed_0:
+                all_paths_to_be_removed_0.append(path)
+
+        for path in cycle_paths_1:
+            if path not in all_paths_to_be_removed_1:
+                all_paths_to_be_removed_1.append(path)
+
+        filtered_paths_0 = all_paths_0.copy()
+        filtered_paths_1 = all_paths_1.copy()
+
+        for path in all_paths_to_be_removed_0:
+            filtered_paths_0.remove(path)
+
+        for path in all_paths_to_be_removed_1:
+            filtered_paths_1.remove(path)
+
+        # Loop over all combinations to form n sized paths from the left and right branch of the edge
+        for length_path_0 in range(n):
+            length_path_1 = n - length_path_0
+
+            correct_length_path_0 = [path for path in filtered_paths_0 if len(path) == length_path_0]
+            correct_length_path_1 = [path for path in filtered_paths_1 if len(path) == length_path_1]
+
+            possible_induced_paths = []
+
+            for path_0 in correct_length_path_0:
+                for path_1 in correct_length_path_1:
+                    concat_path = path_0 + path_1
+                    possible_induced_paths.append(concat_path)
+
+            for path in possible_induced_paths:
+                if self.check_induced_subpath(graph, path):
+                    return True
 
         return False
 
