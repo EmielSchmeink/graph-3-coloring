@@ -1,5 +1,7 @@
 import os
 
+import networkx as nx
+
 from graph_coloring.dsatur import dsatur_solve
 from graph_coloring.exceptions import InvalidColoringException
 from graph_coloring.sat import sat_solve
@@ -28,5 +30,7 @@ def color_dsatur(graph):
         draw_and_check_coloring(graph, colors)
 
 
-test = os.listdir('graphs')
-test1 = 0
+for graph_path in os.listdir('graphs'):
+    graph = nx.read_adjlist(f"graphs/{graph_path}")
+    color_sat(graph)
+    color_dsatur(graph)

@@ -47,7 +47,7 @@ class GraphGenerator:
                 g.remove_edge(e[0], e[1])
                 continue
 
-            if path_length is not None and self.checker.graph_check_induced_path(g, path_length):
+            if path_length is not None and self.checker.check_induced_path(g, e, path_length):
                 # TODO check why the individual induced path check doesn't work (sometimes produces induced paths)
                 g.remove_edge(e[0], e[1])
                 continue
@@ -56,6 +56,8 @@ class GraphGenerator:
 
         # Sanity check graph
         self.checker.sanity_check_graph(g, path_length, cycle_size, planar, diameter)
+        from graph_generation.graph_drawer import draw_graph
+        draw_graph(g, None)
 
         return g
 
