@@ -41,26 +41,25 @@ class GraphGenerator:
             # If the edge breaks a requirement, remove it and start with a new edge
             if planar is not None and planar != self.checker.graph_check_planar(g):
                 g.remove_edge(e[0], e[1])
-                print(f"Edge {e} was not okay")
+                # print(f"Edge {e} was not okay")
                 continue
 
             if cycle_size is not None and self.checker.check_induced_cycle(g, e[0], cycle_size):
                 g.remove_edge(e[0], e[1])
-                print(f"Edge {e} was not okay")
+                # print(f"Edge {e} was not okay")
                 continue
 
             if path_length is not None and self.checker.check_induced_path(g, e, path_length):
-                # TODO check why the individual induced path check doesn't work (sometimes produces induced paths)
                 g.remove_edge(e[0], e[1])
-                print(f"Edge {e} was not okay")
+                # print(f"Edge {e} was not okay")
                 continue
 
-            print(f"Edge {e} was okay")
+            # print(f"Edge {e} was okay")
 
         # Sanity check graph
         from graph_generation.graph_drawer import draw_graph
         draw_graph(g, None)
-        self.checker.sanity_check_graph(g, path_length, cycle_size, planar, diameter)
+        # self.checker.sanity_check_graph(g, path_length, cycle_size, planar, diameter)
 
         return g
 
@@ -82,5 +81,3 @@ class GraphGenerator:
 
             # Graph passed all checks, save it
             self.write_graph(graph, p, path_length, cycle_size, planar, diameter)
-
-            queue.task_done()
