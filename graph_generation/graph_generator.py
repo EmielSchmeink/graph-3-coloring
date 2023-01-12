@@ -56,6 +56,8 @@ class GraphGenerator:
 
         # Sanity check graph
         self.checker.sanity_check_graph(g, path_length, cycle_size, planar, diameter)
+        from graph_generation.graph_drawer import draw_graph
+        draw_graph(g, None)
 
         return g
 

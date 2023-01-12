@@ -1,5 +1,6 @@
 import networkx as nx
 from networkx import NetworkXNoCycle
+from networkx.algorithms.simple_paths import _empty_generator
 
 
 class InvalidGraphException(Exception):
@@ -149,15 +150,72 @@ class GraphChecker:
 
         return False
 
+    @staticmethod
+    def all_simple_paths(graph, source, target, cutoff):
+        if source not in graph:
+            raise nx.NodeNotFound(f"source node {source} not in graph")
+        if target in graph:
+            targets = {target}
+        else:
+            try:
+                targets = set(target)
+            except TypeError as err:
+                raise nx.NodeNotFound(f"target node {target} not in graph") from err
+        if source in targets:
+            return _empty_generator()
+        if cutoff is None:
+            cutoff = len(graph) - 1
+        if cutoff < 1:
+            return _empty_generator()
+
+        # The dict of visited nodes
+        visited = dict.fromkeys([source])
+        stack = [iter(graph[source])]
+
+        all_paths = []
+
+        while stack:
+            children = stack[-1]
+            child = next(children, None)
+
+            if child is None:
+                stack.pop()
+                visited.popitem()
+            elif len(visited) < cutoff:
+                if child in visited:
+                    continue
+                if child in targets:
+                    all_paths.append(list(visited) + [child])
+
+                visited[child] = None
+
+                if targets - set(visited.keys()):  # expand stack until find all targets
+                    stack.append(iter(graph[child]))
+                else:
+                    visited.popitem()  # maybe other ways to child
+            else:  # len(visited) == cutoff:
+                for target in (targets & (set(children) | {child})) - set(visited.keys()):
+                    all_paths.append(list(visited) + [target])
+
+                stack.pop()
+                visited.popitem()
+
+        return all_paths
+
     def check_induced_path(self, graph, edge, n):
         # Remove the source as a target
-        vertices_without_source_0 = list(graph.nodes)
-        vertices_without_source_1 = list(graph.nodes)
-        vertices_without_source_0.remove(edge[0])
-        vertices_without_source_1.remove(edge[1])
+        vertices_without_sources = list(graph.nodes)
+        vertices_without_sources.remove(edge[0])
+        vertices_without_sources.remove(edge[1])
 
-        all_paths_0 = [path for path in nx.all_simple_paths(graph, edge[0], vertices_without_source_0, cutoff=n - 1)]
-        all_paths_1 = [path for path in nx.all_simple_paths(graph, edge[1], vertices_without_source_1, cutoff=n - 1)]
+        graph_without_0 = graph.copy()
+        graph_without_1 = graph.copy()
+
+        graph_without_0.remove_node(edge[0])
+        graph_without_1.remove_node(edge[1])
+
+        all_paths_0 = self.all_simple_paths(graph_without_1, edge[0], vertices_without_sources, cutoff=n-1)
+        all_paths_1 = self.all_simple_paths(graph_without_0, edge[1], vertices_without_sources, cutoff=n-1)
 
         # Separate the paths containing the new edge, and paths not containing the new edge
         filtered_paths_0_with_new_edge = self.get_paths_with_new_edge(all_paths_0, edge[1])
@@ -175,25 +233,37 @@ class GraphChecker:
         cycle_paths_0 = self.get_paths_with_cycles(graph, all_paths_0)
         cycle_paths_1 = self.get_paths_with_cycles(graph, all_paths_1)
 
-        all_paths_to_be_removed_0 = filtered_paths_0_with_new_edge
-        all_paths_to_be_removed_1 = filtered_paths_1_with_new_edge
-
-        for path in cycle_paths_0:
-            if path not in all_paths_to_be_removed_0:
-                all_paths_to_be_removed_0.append(path)
-
-        for path in cycle_paths_1:
-            if path not in all_paths_to_be_removed_1:
-                all_paths_to_be_removed_1.append(path)
-
         filtered_paths_0 = all_paths_0.copy()
         filtered_paths_1 = all_paths_1.copy()
 
-        for path in all_paths_to_be_removed_0:
-            filtered_paths_0.remove(path)
+        import time
+        start_time = time.time()
 
-        for path in all_paths_to_be_removed_1:
-            filtered_paths_1.remove(path)
+        for path_cycle in cycle_paths_0:
+            try:
+                filtered_paths_0.remove(path_cycle)
+            except ValueError:
+                pass
+
+        for path_edge in filtered_paths_0_with_new_edge:
+            try:
+                filtered_paths_0.remove(path_edge)
+            except ValueError:
+                pass
+
+        print("--- %s seconds ---" % (time.time() - start_time))
+
+        for path_cycle in cycle_paths_1:
+            try:
+                filtered_paths_1.remove(path_cycle)
+            except ValueError:
+                pass
+
+        for path_edge in filtered_paths_1_with_new_edge:
+            try:
+                filtered_paths_1.remove(path_edge)
+            except ValueError:
+                pass
 
         # Loop over all combinations to form n sized paths from the left and right branch of the edge
         for length_path_0 in range(n):
