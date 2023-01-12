@@ -170,8 +170,7 @@ class GraphChecker:
         visited = dict.fromkeys([source])
         stack = [iter(graph[source])]
 
-        all_paths_without_edge = []
-        all_paths_with_edge = []
+        all_paths = []
 
         while stack:
             children = stack[-1]
@@ -186,15 +185,11 @@ class GraphChecker:
                 if child in targets:
                     found_path = list(visited) + [child]
 
-                    if self.is_path_cycle(graph, found_path):
-                        continue
+                    # TODO huge speedup, but produces incorrect graphs
+                    # if self.is_path_cycle(graph, found_path):
+                    #     continue
 
-                    # If the path contains the new edge, it must be the full path size, otherwise we don't care
-                    if self.add_found_path_to_edge_paths(found_path, cutoff + 1, edge_neighbor):
-                        all_paths_with_edge.append(found_path)
-                        continue
-
-                    all_paths_without_edge.append(found_path)
+                    all_paths.append(found_path)
 
                 visited[child] = None
 
@@ -206,20 +201,15 @@ class GraphChecker:
                 for target in (targets & (set(children) | {child})) - set(visited.keys()):
                     found_path_cutoff = list(visited) + [target]
 
-                    if self.is_path_cycle(graph, found_path_cutoff):
-                        continue
+                    # if self.is_path_cycle(graph, found_path_cutoff):
+                    #     continue
 
-                    # If the path contains the new edge, it must be the full path size, otherwise we don't care
-                    if self.add_found_path_to_edge_paths(found_path_cutoff, cutoff + 1, edge_neighbor):
-                        all_paths_with_edge.append(found_path_cutoff)
-                        continue
-
-                    all_paths_without_edge.append(found_path_cutoff)
+                    all_paths.append(found_path_cutoff)
 
                 stack.pop()
                 visited.popitem()
 
-        return all_paths_without_edge, all_paths_with_edge
+        return all_paths
 
     def check_induced_path(self, graph, edge, n):
         # Remove the source as a target
@@ -234,23 +224,22 @@ class GraphChecker:
         graph_without_1.remove_node(edge[1])
 
         # Separate the paths containing the new edge, and paths not containing the new edge
-        paths_0_without_new_edge, paths_0_with_new_edge = self.all_simple_paths(graph_without_1, edge[0], vertices_without_sources, cutoff=n-1, edge_neighbor=edge[1])
-        paths_1_without_new_edge, paths_1_with_new_edge = self.all_simple_paths(graph_without_0, edge[1], vertices_without_sources, cutoff=n-1, edge_neighbor=edge[0])
+        paths_0 = self.all_simple_paths(graph_without_1, edge[0], vertices_without_sources, cutoff=n-1, edge_neighbor=edge[1])
+        paths_1 = self.all_simple_paths(graph_without_0, edge[1], vertices_without_sources, cutoff=n-1, edge_neighbor=edge[0])
 
-        for path in paths_0_with_new_edge:
-            if len(path) == n and self.check_induced_subpath(graph, path):
-                return True
+        # Make sure the edge nodes themselves also can be used to form a path
+        paths_0.append([edge[0]])
+        paths_1.append([edge[1]])
 
-        for path in paths_1_with_new_edge:
-            if len(path) == n and self.check_induced_subpath(graph, path):
-                return True
+        # from graph_generation.graph_drawer import draw_graph
+        # draw_graph(graph, None)
 
         # Loop over all combinations to form n sized paths from the left and right branch of the edge
         for length_path_0 in range(n):
             length_path_1 = n - length_path_0
 
-            correct_length_path_0 = [path for path in paths_0_without_new_edge if len(path) == length_path_0]
-            correct_length_path_1 = [path for path in paths_1_without_new_edge if len(path) == length_path_1]
+            correct_length_path_0 = [path for path in paths_0 if len(path) == length_path_0]
+            correct_length_path_1 = [path for path in paths_1 if len(path) == length_path_1]
 
             possible_induced_paths = []
 
