@@ -134,11 +134,7 @@ class GraphChecker:
         return False
 
     @staticmethod
-    def check_induced_subpath(graph, path, n=None):
-        if n is not None:
-            if n != len(path):
-                return False
-
+    def check_induced_subpath(graph, path):
         # Check for each path if the simple path is an actual induced path
         induced_possible_path = nx.induced_subgraph(graph, path)
         induced_path_cycles = nx.cycle_basis(induced_possible_path)
