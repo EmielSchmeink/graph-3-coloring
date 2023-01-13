@@ -119,9 +119,7 @@ class GraphChecker:
             path_without_neighbors.remove(third_node)
 
             for path_node in path_without_neighbors:
-                if graph.has_edge(node, path_node) \
-                        or graph.has_edge(second_node, path_node) \
-                        or graph.has_edge(third_node, path_node):
+                if graph.has_edge(second_node, path_node):
                     return True
 
         return False
@@ -185,9 +183,8 @@ class GraphChecker:
                 if child in targets:
                     found_path = list(visited) + [child]
 
-                    # TODO huge speedup, but produces incorrect graphs
-                    # if self.is_path_cycle(graph, found_path):
-                    #     continue
+                    if self.is_path_cycle(graph, found_path):
+                        continue
 
                     all_paths.append(found_path)
 
