@@ -1,6 +1,9 @@
-import networkx as nx
-from networkx import NetworkXNoCycle
-from networkx.algorithms.simple_paths import _empty_generator
+# import networkx as nx
+# from networkx import NetworkXNoCycle
+# from networkx.algorithms.simple_paths import _empty_generator
+import graph_tool.topology as gt_topology
+import graph_tool as gt
+import numpy as np
 
 
 class InvalidGraphException(Exception):
@@ -133,12 +136,16 @@ class GraphChecker:
 
     @staticmethod
     def check_induced_subpath(graph, path):
-        # Check for each path if the simple path is an actual induced path
-        induced_possible_path = nx.induced_subgraph(graph, path)
-        induced_path_cycles = nx.cycle_basis(induced_possible_path)
+        vfilt = graph.new_vertex_property('bool')
+
+        for v in path:
+            vfilt[v] = True
+
+        induced_possible_path = gt.GraphView(graph, vfilt)
+        induced_path_cycles = gt_topology.all_circuits(induced_possible_path)
 
         # The found path is an actual induced path, and does not contain cycles
-        if len(induced_path_cycles) == 0:
+        for _ in induced_path_cycles:
             return True
 
         return False
@@ -147,86 +154,34 @@ class GraphChecker:
         # If the path contains the new edge, it must be the full path size, otherwise we don't care
         return self.path_contains_new_edge(found_path, edge_neighbor) and len(found_path) == path_length
 
-    def all_simple_paths(self, graph, source, target, cutoff, edge_neighbor):
-        if source not in graph:
-            raise nx.NodeNotFound(f"source node {source} not in graph")
-        if target in graph:
-            targets = {target}
-        else:
-            try:
-                targets = set(target)
-            except TypeError as err:
-                raise nx.NodeNotFound(f"target node {target} not in graph") from err
-        if source in targets:
-            return _empty_generator()
-        if cutoff is None:
-            cutoff = len(graph) - 1
-        if cutoff < 1:
-            return _empty_generator()
-
-        # The dict of visited nodes
-        visited = dict.fromkeys([source])
-        stack = [iter(graph[source])]
-
-        all_paths = []
-
-        while stack:
-            children = stack[-1]
-            child = next(children, None)
-
-            if child is None:
-                stack.pop()
-                visited.popitem()
-            elif len(visited) < cutoff:
-                if child in visited:
-                    continue
-                if child in targets:
-                    found_path = list(visited) + [child]
-
-                    if self.is_path_cycle(graph, found_path):
-                        continue
-
-                    all_paths.append(found_path)
-
-                visited[child] = None
-
-                if targets - set(visited.keys()):  # expand stack until find all targets
-                    stack.append(iter(graph[child]))
-                else:
-                    visited.popitem()  # maybe other ways to child
-            else:  # len(visited) == cutoff:
-                for target in (targets & (set(children) | {child})) - set(visited.keys()):
-                    found_path_cutoff = list(visited) + [target]
-
-                    # if self.is_path_cycle(graph, found_path_cutoff):
-                    #     continue
-
-                    all_paths.append(found_path_cutoff)
-
-                stack.pop()
-                visited.popitem()
-
-        return all_paths
-
     def check_induced_path(self, graph, edge, n):
         # Remove the source as a target
-        vertices_without_sources = list(graph.nodes)
+        vertices_without_sources = graph.get_vertices().tolist()
         vertices_without_sources.remove(edge[0])
         vertices_without_sources.remove(edge[1])
 
-        graph_without_0 = graph.copy()
-        graph_without_1 = graph.copy()
+        graph_without_0 = gt.Graph(graph)
+        graph_without_1 = gt.Graph(graph)
 
-        graph_without_0.remove_node(edge[0])
-        graph_without_1.remove_node(edge[1])
+        graph_without_0.remove_vertex(edge[0])
+        graph_without_1.remove_vertex(edge[1])
 
         # Separate the paths containing the new edge, and paths not containing the new edge
-        paths_0 = self.all_simple_paths(graph_without_1, edge[0], vertices_without_sources, cutoff=n-1, edge_neighbor=edge[1])
-        paths_1 = self.all_simple_paths(graph_without_0, edge[1], vertices_without_sources, cutoff=n-1, edge_neighbor=edge[0])
+        paths_0 = []
+        paths_1 = []
+
+        for vertex in vertices_without_sources:
+            paths_to_vertex_0 = gt_topology.all_paths(graph_without_1, edge[0], vertex, cutoff=n - 1)
+            for path in paths_to_vertex_0:
+                paths_0.append(path)
+
+            paths_to_vertex_1 = gt_topology.all_paths(graph_without_0, edge[1], vertex, cutoff=n - 1)
+            for path in paths_to_vertex_1:
+                paths_1.append(path)
 
         # Make sure the edge nodes themselves also can be used to form a path
-        paths_0.append([edge[0]])
-        paths_1.append([edge[1]])
+        paths_0.append(np.array([edge[0]]))
+        paths_1.append(np.array([edge[1]]))
 
         # from graph_generation.graph_drawer import draw_graph
         # draw_graph(graph, None)
@@ -242,7 +197,7 @@ class GraphChecker:
 
             for path_0 in correct_length_path_0:
                 for path_1 in correct_length_path_1:
-                    concat_path = path_0 + path_1
+                    concat_path = path_0.tolist() + path_1.tolist()
                     possible_induced_paths.append(concat_path)
 
             for path in possible_induced_paths:
