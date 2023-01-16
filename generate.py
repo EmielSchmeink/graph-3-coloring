@@ -7,13 +7,13 @@ configurations = [
     # [0.3, None, 3, True, None],
     # [0.5, None, 3, True, None],
     # [0.8, None, 3, True, None],
-    [0.3, 4, 5, None, None],
+    # [0.3, 4, 5, None, None],
     # [0.3, 4, 5, None, None],
     # [0.5, 4, 5, None, None],
     # [0.8, 4, 5, None, None],
     # [0.3, 7, 3, None, None],
     # [0.5, 7, 3, None, None],
-    # [0.8, 7, 3, None, None],
+    [0.8, 7, 3, None, None],
 ]
 
 for config in configurations:
