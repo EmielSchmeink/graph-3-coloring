@@ -3,7 +3,7 @@ import os
 import random
 from datetime import datetime
 
-import igraph as ig
+import networkx as nx
 
 
 class GraphGenerator:

@@ -1,4 +1,5 @@
 import networkx as nx
+import igraph as ig
 from networkx import NetworkXNoCycle
 from networkx.algorithms.simple_paths import _empty_generator
 
@@ -132,10 +133,17 @@ class GraphChecker:
         return False
 
     @staticmethod
-    def check_induced_subpath(graph, path):
+    def check_induced_subpath(graph: ig.Graph, path, n):
         # Check for each path if the simple path is an actual induced path
-        induced_possible_path = nx.induced_subgraph(graph, path)
-        induced_path_cycles = nx.cycle_basis(induced_possible_path)
+        induced_possible_path = graph.subgraph(path)
+
+        if len(induced_possible_path.es) < n:
+            return False
+
+        induced_path_cycles = induced_possible_path.fundamental_cycles()
+
+        # from graph_generation.graph_drawer import draw_graph
+        # draw_graph(g, None)
 
         # The found path is an actual induced path, and does not contain cycles
         if len(induced_path_cycles) == 0:
@@ -147,82 +155,31 @@ class GraphChecker:
         # If the path contains the new edge, it must be the full path size, otherwise we don't care
         return self.path_contains_new_edge(found_path, edge_neighbor) and len(found_path) == path_length
 
-    def all_simple_paths(self, graph, source, target, cutoff, edge_neighbor):
-        if source not in graph:
-            raise nx.NodeNotFound(f"source node {source} not in graph")
-        if target in graph:
-            targets = {target}
-        else:
-            try:
-                targets = set(target)
-            except TypeError as err:
-                raise nx.NodeNotFound(f"target node {target} not in graph") from err
-        if source in targets:
-            return _empty_generator()
-        if cutoff is None:
-            cutoff = len(graph) - 1
-        if cutoff < 1:
-            return _empty_generator()
-
-        # The dict of visited nodes
-        visited = dict.fromkeys([source])
-        stack = [iter(graph[source])]
-
-        all_paths = []
-
-        while stack:
-            children = stack[-1]
-            child = next(children, None)
-
-            if child is None:
-                stack.pop()
-                visited.popitem()
-            elif len(visited) < cutoff:
-                if child in visited:
-                    continue
-                if child in targets:
-                    found_path = list(visited) + [child]
-
-                    if self.is_path_cycle(graph, found_path):
-                        continue
-
-                    all_paths.append(found_path)
-
-                visited[child] = None
-
-                if targets - set(visited.keys()):  # expand stack until find all targets
-                    stack.append(iter(graph[child]))
-                else:
-                    visited.popitem()  # maybe other ways to child
-            else:  # len(visited) == cutoff:
-                for target in (targets & (set(children) | {child})) - set(visited.keys()):
-                    found_path_cutoff = list(visited) + [target]
-
-                    # if self.is_path_cycle(graph, found_path_cutoff):
-                    #     continue
-
-                    all_paths.append(found_path_cutoff)
-
-                stack.pop()
-                visited.popitem()
-
-        return all_paths
-
     def check_induced_path(self, graph, edge, n):
         # Remove the source as a target
-        vertices_without_sources = list(graph.nodes)
-        vertices_without_sources.remove(edge[0])
-        vertices_without_sources.remove(edge[1])
+        # vertices_without_sources = list(graph.nodes)
+        # vertices_without_sources.remove(edge[0])
+        # vertices_without_sources.remove(edge[1])
 
-        graph_without_0 = graph.copy()
-        graph_without_1 = graph.copy()
+        ig_graph = ig.Graph.from_networkx(graph)
+        # graph_without_1 = ig.Graph.from_networkx(graph)
 
-        graph_without_0.remove_node(edge[0])
-        graph_without_1.remove_node(edge[1])
+        # graph_without_0.delete_vertices(edge[0])
+        # graph_without_1.delete_vertices(edge[1])
 
-        # Separate the paths containing the new edge, and paths not containing the new edge
-        paths_0 = self.all_simple_paths(graph_without_1, edge[0], vertices_without_sources, cutoff=n-1, edge_neighbor=edge[1])
-        paths_1 = self.all_simple_paths(graph_without_0, edge[1], vertices_without_sources, cutoff=n-1, edge_neighbor=edge[0])
+        # gw1_source_vertex = None
+        # gw0_source_vertex = None
+        #
+        # for v in graph_without_1.vs:
+        #     if v['_nx_name'] == edge[0]:
+        #         gw1_source_vertex = v.index
+        #
+        # for v in graph_without_0.vs:
+        #     if v['_nx_name'] == edge[1]:
+        #         gw0_source_vertex = v.index
+
+        paths_0 = ig_graph.get_all_simple_paths(v=edge[0], cutoff=n-1)
+        paths_1 = ig_graph.get_all_simple_paths(v=edge[1], cutoff=n-1)
 
         # Make sure the edge nodes themselves also can be used to form a path
         paths_0.append([edge[0]])
@@ -246,7 +203,7 @@ class GraphChecker:
                     possible_induced_paths.append(concat_path)
 
             for path in possible_induced_paths:
-                if self.check_induced_subpath(graph, path):
+                if self.check_induced_subpath(ig_graph, path, n):
                     return True
 
         return False
