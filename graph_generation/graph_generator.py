@@ -5,9 +5,11 @@ from datetime import datetime
 
 import networkx as nx
 
+from graph_generation.graph_checker import GraphChecker
+
 
 class GraphGenerator:
-    checker = None
+    checker: GraphChecker = None
 
     def __init__(self, checker):
         self.checker = checker()
