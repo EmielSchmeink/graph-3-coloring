@@ -55,6 +55,8 @@ class GraphGenerator:
             print(f"Edge {e} was okay")
 
         # Sanity check graph
+        from graph_generation.graph_drawer import draw_graph
+        draw_graph(g, None)
         self.checker.sanity_check_graph(g, path_length, cycle_size, planar, diameter)
 
         return g
