@@ -52,7 +52,6 @@ class GraphGenerator:
                 continue
 
             if path_length is not None and self.checker.check_induced_path(g, e, path_length):
-                # TODO check why the individual induced path check doesn't work (sometimes produces induced paths)
                 g.remove_edge(e[0], e[1])
                 print(f"Edge {e} was not okay")
                 continue
