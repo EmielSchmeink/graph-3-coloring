@@ -1,6 +1,6 @@
 from z3.z3 import *
 
-from graph_coloring.exceptions import InvalidColoringException, sanity_check_coloring
+from graph_coloring.exceptions import sanity_check_coloring
 
 
 def sat_solve(graph):
