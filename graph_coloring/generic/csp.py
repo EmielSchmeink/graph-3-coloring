@@ -1,5 +1,31 @@
 import networkx as nx
+
 from graph_coloring.exceptions import sanity_check_coloring, InvalidColoringException
+from graph_generation.graph_drawer import draw_graph
+
+
+def find_vertices_in_cycle(graph):
+    graph_cycles = []
+    cycles_found = True
+
+    try:
+        graph_3_unfrozen = graph.copy()
+        # TODO bit hacky, exists while when find_cycle fails to find a cycle, not in a nice way
+        while cycles_found:
+            draw_graph(graph_3_unfrozen, None)
+
+            found_cycle = nx.find_cycle(graph_3_unfrozen)
+            unique_vertices = set(list(sum(found_cycle, ())))
+            graph_cycles.append(unique_vertices)
+            graph_3_unfrozen.remove_nodes_from(unique_vertices)
+    except nx.NetworkXNoCycle:
+        pass
+
+    return graph_cycles
+
+
+def get_vertices_of_degree_n(graph, n):
+    return [vertex_degree[0] for vertex_degree in graph.degree if vertex_degree[1] == n]
 
 
 def csp_solve(graph: nx.Graph):
@@ -26,18 +52,31 @@ def csp_solve(graph: nx.Graph):
     :param graph:
     :return:
     """
-
-    from graph_generation.graph_drawer import draw_graph
+    graph_complete = graph.copy()
     draw_graph(graph, None)
 
-    # If the degree is lower than 3, we want to remove it from the graph
+    # Step 1: If the degree is lower than 3, we want to remove it from the graph
     low_degree_vertices = [vertex_degree[0] for vertex_degree in graph.degree if vertex_degree[1] <= 2]
-
-    graph_complete = graph.copy()
     graph.remove_nodes_from(low_degree_vertices)
 
-    degree_3_vertices = [vertex_degree[0] for vertex_degree in graph.degree if vertex_degree[1] == 3]
+    # Step 2: Remove the cycles with degree 3, and later recursively color them
+    degree_3_vertices = get_vertices_of_degree_n(graph, 3)
+    graph_3: nx.Graph = graph.subgraph(degree_3_vertices)
+    graph_3_cycle_vertices = find_vertices_in_cycle(graph_3)
 
+    for cycle in graph_3_cycle_vertices:
+        graph.remove_nodes_from(cycle)
+
+    # Step 3: Remove the trees with more than 8 vertices, and later recursively color them
+    degree_3_vertices_without_cycles = get_vertices_of_degree_n(graph, 3)
+    graph_3_without_cycle = graph.subgraph(degree_3_vertices_without_cycles)
+    graph_3_cc = [component for component in nx.connected_components(graph_3_without_cycle)]
+
+    for component in graph_3_cc:
+        if len(component) >= 8:
+            graph.remove_nodes_from(component)
+
+    # Step 4:
 
 
     draw_graph(graph, None)

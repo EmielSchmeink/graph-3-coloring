@@ -40,6 +40,8 @@ def color_dsatur(graph):
 
 for graph_path in os.listdir('graphs'):
     graph = nx.read_adjlist(f"graphs/{graph_path}")
-    color_csp(graph)
-    color_sat(graph)
+    csp_graph = graph.copy()
+    sat_graph = graph.copy()
+    color_csp(csp_graph)
+    color_sat(sat_graph)
     # color_dsatur(graph)
