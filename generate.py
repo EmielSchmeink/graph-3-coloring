@@ -16,6 +16,6 @@ configurations = [
 ]
 
 for config in configurations:
-    for n in [100]:
+    for n in [30]:
         g = graph_generator.find_graphs_with_conditions(n, config[0], config[1], config[2], config[3], config[4],
                                                         shuffle=True)
