@@ -37,51 +37,45 @@ def intersection(list1, list2):
     return list(set(list1) & set(list2))
 
 
-def bushy_dfs(graph, bushy_forest_vertices, possible_forest_vertices):
-    if len(possible_forest_vertices) == 0:
-        return bushy_forest_vertices
-
-    new_bushy_forest_vertices = []
-    new_possible_forest_vertices = []
-
-    vertex = possible_forest_vertices.pop(0)
-    neighbors = [v for v in graph.neighbors(vertex)]
-    neighbors_in_forest = intersection(bushy_forest_vertices, neighbors)
-    neighbors_not_in_forest = [neighbor for neighbor in neighbors if neighbor not in neighbors_in_forest]
-
-    if not len(neighbors) >= 4:
-        new_bushy_forest_vertices.append(vertex)
-        return new_bushy_forest_vertices
-
-    if len(neighbors_in_forest) <= 1:
-        new_bushy_forest_vertices.append(vertex)
-        new_bushy_forest_vertices.extend(neighbors)
-        new_possible_forest_vertices.extend(possible_forest_vertices)
-        new_possible_forest_vertices.extend(neighbors)
-
-        test = bushy_dfs(graph, new_bushy_forest_vertices, new_possible_forest_vertices).copy()
-        bushy_forest_vertices.extend(neighbors_not_in_forest)
-        bushy_forest_vertices.extend(test)
-
-    return bushy_forest_vertices
-
-
 def get_maximal_bushy_forest(graph):
-    graph_copy = graph.copy()
-    degree_4_vertices = get_vertices_of_degree_n(graph_copy, 4, True)
+    forest = []
 
-    possible_forest_vertices = [degree_4_vertices[0]]
+    for v in graph:
+        graph_without_forest = graph.copy()
+        graph_without_forest.remove_nodes_from(forest)
 
-    bushy_forest_vertices = bushy_dfs(graph_copy, [], possible_forest_vertices)
+        # test = nx.subgraph(graph, forest)
+        # draw_graph(test, None)
 
-    # bushy_forest = nx.subgraph(graph, bushy_forest_vertices)
-    # maximal_bushy_forest_vertices = [vertex_degree[0] for vertex_degree in bushy_forest.degree if vertex_degree[1] > 0]
-    #
-    # test = nx.subgraph(graph, maximal_bushy_forest_vertices)
-    #
-    # draw_graph(test, None)
+        if v not in forest and graph_without_forest.degree[v] >= 4:
+            neighbors = [neighbor for neighbor in graph_without_forest.neighbors(v)]
+            forest.append(v)
+            forest.extend(neighbors)
 
-    return [degree_4_vertices[0]]
+            # test = nx.subgraph(graph, forest)
+            # draw_graph(test, None)
+
+            vertices_to_be_processed = neighbors
+            while len(vertices_to_be_processed) > 0:
+                w = vertices_to_be_processed.pop(0)
+
+                w_neighbors = [neighbor for neighbor in graph_without_forest.neighbors(w)]
+                w_neighbors_not_in_forest = [w_neighbor for w_neighbor in w_neighbors if w_neighbor not in forest]
+
+                w_ok_neighbor = []
+
+                for w_neighbor in w_neighbors_not_in_forest:
+                    w_neighbor_neighbor = [neighbor for neighbor in graph_without_forest.neighbors(w_neighbor)
+                                           if neighbor in forest]
+
+                    if len(w_neighbor_neighbor) <= 1:
+                        w_ok_neighbor.append(w_neighbor)
+
+                if len(w_ok_neighbor) >= 3:
+                    forest.extend(w_neighbors_not_in_forest)
+                    vertices_to_be_processed.extend(w_neighbors_not_in_forest)
+
+    return forest
 
 
 @dataclass
@@ -219,6 +213,12 @@ def csp_solve(graph: nx.Graph):
 
     # TODO make it an actual bushy forest
     test = nx.subgraph(graph, bushy_forest_vertices)
+    test1 = nx.connected_components(test)
+
+    for cc in test1:
+        test3 = nx.subgraph(graph, cc)
+        draw_graph(test3, None)
+
     draw_graph(test, None)
 
     # Step 4:
