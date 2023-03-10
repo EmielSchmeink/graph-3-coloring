@@ -241,9 +241,9 @@ def csp_solve(graph: nx.Graph):
     for k13 in k13_list:
         k13.add_k13_to_graph(graph_without_k13)
         draw_graph(graph_without_k13, None)
-        new_k13_list = get_maximal_set_of_k13(graph_without_k13)
-        # TODO should we remove the K1,3 from T or the graph? Should it be a K1,3 in G \ F or in G \ (F u T)?
-        test = 0
+        new_k13_list = get_maximal_set_of_k13(graph_without_k13, k13.center)
+        # Check whether we have more K1,3s than before
+        # TODO Should be a K1,3 in G \ (F u T)
 
     draw_graph(graph, None)
 
