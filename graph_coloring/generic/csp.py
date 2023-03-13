@@ -159,6 +159,35 @@ def draw_k13_list(graph, k13_list):
     draw_graph(graph, None, edge_colors=color_edges(graph, edges))
 
 
+def optimize_k13_list(graph, k13_list):
+    optimized_k13_list = []
+    new_k13s_found = True
+
+    while new_k13s_found:
+        new_k13s_found = False
+
+        for k13 in k13_list:
+            k13.add_k13_to_graph(graph)
+            draw_graph(graph, None)
+            new_k13_list = get_maximal_set_of_k13(graph, k13.center)
+
+            # If we can get 2 or more new K1,3s by removing 1 K1,3 we add them to the list,
+            # and remove the vertices from the graph
+            # Else we keep the original K1,3 and again remove it from the graph
+            if len(new_k13_list) >= 2:
+                new_k13s_found = True
+
+                for new_k13 in new_k13_list:
+                    new_k13.remove_k13_from_graph(graph)
+
+                optimized_k13_list.extend(new_k13_list)
+            else:
+                k13.remove_k13_from_graph(graph)
+                optimized_k13_list.append(k13)
+
+    return optimized_k13_list
+
+
 def csp_solve(graph: nx.Graph):
     """
     1. if the input graph G contains any vertex v with degree less than two, recursively
@@ -238,12 +267,7 @@ def csp_solve(graph: nx.Graph):
 
     # Step 5
     # TODO loop over K1,3 list and check if we can create more by removing one
-    for k13 in k13_list:
-        k13.add_k13_to_graph(graph_without_k13)
-        draw_graph(graph_without_k13, None)
-        new_k13_list = get_maximal_set_of_k13(graph_without_k13, k13.center)
-        # Check whether we have more K1,3s than before
-        # TODO Should be a K1,3 in G \ (F u T)
+    total_k13_list = optimize_k13_list(graph_without_k13, k13_list)
 
     draw_graph(graph, None)
 
