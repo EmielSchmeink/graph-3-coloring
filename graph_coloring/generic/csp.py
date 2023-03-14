@@ -44,16 +44,16 @@ def get_maximal_bushy_forest(graph):
         graph_without_forest = graph.copy()
         graph_without_forest.remove_nodes_from(forest)
 
-        # test = nx.subgraph(graph, forest)
-        # draw_graph(test, None)
+        test = nx.subgraph(graph, forest)
+        draw_graph(test, None)
 
         if v not in forest and graph_without_forest.degree[v] >= 4:
             neighbors = [neighbor for neighbor in graph_without_forest.neighbors(v)]
             forest.append(v)
             forest.extend(neighbors)
 
-            # test = nx.subgraph(graph, forest)
-            # draw_graph(test, None)
+            test = nx.subgraph(graph, forest)
+            draw_graph(test, None)
 
             vertices_to_be_processed = neighbors
             while len(vertices_to_be_processed) > 0:
