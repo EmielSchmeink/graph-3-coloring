@@ -14,7 +14,8 @@ class GraphChecker:
         invalid_coloring = any([coloring[int(x)] == coloring[int(y)] for (x, y) in graph.edges()])
         return max_3 and not invalid_coloring
 
-    def sanity_check_graph(self, graph, path_length=None, cycle_size=None, planarity=None, diameter=None):
+    def sanity_check_graph(self, graph, path_length=None, cycle_size=None, planarity=None, diameter=None,
+                           locally_connected=None):
         if planarity is not None:
             planar = self.graph_check_planar(graph)
             print(f"Planar: {planar}")
@@ -46,9 +47,27 @@ class GraphChecker:
                     f"Graph had a diameter of size {nx.diameter(graph)}, while {diameter} is required"
                 )
 
+        if locally_connected is not None:
+            graph_locally_connected = self.graph_check_locally_connected(graph)
+            print(f"Graph should be locally connected, is: {graph_locally_connected}")
+
+            # The diameter of the graph should be smaller or equal than the given diameter, so negate
+            if not graph_locally_connected:
+                raise InvalidGraphException(
+                    f"Graph was not locally connected"
+                )
+
+    def graph_check_locally_connected(self, graph):
+        for node in graph:
+            print(f"Currently checking node {node} for locally connectedness")
+            if not self.check_locally_connected(graph, [node]):
+                return False
+
+        return True
+
     def graph_check_induced_path(self, graph, n):
         for node in graph:
-            print(f"Currently checking node {node}")
+            print(f"Currently checking node {node} for induced path")
             if self.check_induced_path_old(graph, node, n):
                 return True
 
@@ -203,3 +222,13 @@ class GraphChecker:
             return nx.triangles(graph, edge[0]) > 0
 
         return self.check_induced_cycle_using_path(graph, edge, c)
+
+    def check_locally_connected(self, graph, nodes):
+        for node in nodes:
+            neighbors = [neighbor for neighbor in graph.neighbors(node)]
+            induced_neighbors = nx.induced_subgraph(graph, neighbors)
+
+            if nx.number_connected_components(induced_neighbors) != 1:
+                return False
+
+        return True

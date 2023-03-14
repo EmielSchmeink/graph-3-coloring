@@ -12,10 +12,10 @@ configurations = [
     # [0.8, 4, 5, None, None],
     # [0.3, 7, 3, None, None],
     # [0.5, 7, 3, None, None],
-    [1, 7, 3, None, None],
+    [0.8, None, None, None, None, None],
 ]
 
 for config in configurations:
-    for n in [100]:
+    for n in [25]:
         g = graph_generator.find_graphs_with_conditions(n, config[0], config[1], config[2], config[3], config[4],
-                                                        shuffle=True)
+                                                        config[5], shuffle=False)

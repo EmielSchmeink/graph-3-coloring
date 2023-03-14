@@ -24,7 +24,8 @@ class GraphGenerator:
         nx.write_adjlist(graph, path)
 
     def erdos_renyi_with_checks(self, n, p,
-                                path_length=None, cycle_size=None, planar=None, diameter=None, shuffle=True, seed=None):
+                                path_length=None, cycle_size=None, planar=None, diameter=None, locally_connected=None,
+                                shuffle=True, seed=None):
         random.seed(seed)
 
         # All combinations of vertices that could become an edge
@@ -76,13 +77,13 @@ class GraphGenerator:
         # Sanity check graph
         from graph_generation.graph_drawer import draw_graph
         draw_graph(g, None)
-        self.checker.sanity_check_graph(g, path_length, cycle_size, planar, diameter)
+        self.checker.sanity_check_graph(g, path_length, cycle_size, planar, diameter, locally_connected)
 
         return g
 
     def find_graphs_with_conditions(self, nodes, p,
                                     path_length=None, cycle_size=None, planar=None, diameter=None,
-                                    shuffle=None, seed=0):
+                                    locally_connected=None, shuffle=None, seed=0):
         print(f"Seed: {seed}")
         path = f"graph-nodes-{nodes}-p-{p}-path-{path_length}-cycle-{cycle_size}-diameter-" \
                f"{diameter}-planar-{planar}-shuffle-{shuffle}-{datetime.now().strftime('%d-%m-%Y-%H:%M:%S')}"
@@ -96,7 +97,8 @@ class GraphGenerator:
                             datefmt='%H:%M:%S',
                             level=logging.INFO)
 
-        graph = self.erdos_renyi_with_checks(nodes, p, path_length, cycle_size, planar, diameter, shuffle, seed)
+        graph = self.erdos_renyi_with_checks(nodes, p, path_length, cycle_size, planar, diameter, locally_connected,
+                                             shuffle, seed)
 
         # Graph passed all checks, save it
         self.write_graph(graph, path)
