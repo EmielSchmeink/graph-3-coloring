@@ -1,6 +1,6 @@
 networkx>=2.8.8
 matplotlib>=3.6.2
-pylint>=2.15.9
+pyprog>=1.1.0
 scikit-learn>=1.2.0
 z3>=0.2.0
 z3-solver>=4.11.2.0
