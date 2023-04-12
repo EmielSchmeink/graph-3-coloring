@@ -80,7 +80,7 @@ def csp_satisfier(graph, allowed_vertex_color_dict):
     """
     s = Solver()
 
-    print('Making formula...')
+    print('CSP: Making formula...')
     R = Function('R', IntSort(), BoolSort())
     G = Function('G', IntSort(), BoolSort())
     B = Function('B', IntSort(), BoolSort())
@@ -89,7 +89,7 @@ def csp_satisfier(graph, allowed_vertex_color_dict):
     edge_sat = create_edge_sat(graph, R, G, B)
     s.add(And(vertex_sat, edge_sat))
 
-    print('Solving...')
+    print('CSP: Solving...')
     is_sat = s.check()
 
     if is_sat == sat:

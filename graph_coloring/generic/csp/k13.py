@@ -3,6 +3,7 @@ import itertools
 import networkx as nx
 
 from graph_coloring.misc import get_vertices_of_degree_n, intersection
+from graph_generation.graph_drawer import draw_flow
 
 
 class K13:
@@ -83,6 +84,13 @@ class K13:
         """
         return {self.center: self.neighbors}
 
+    def get_all_nodes(self):
+        """
+        Get all internal nodes of the K13.
+        :return: List of all internal nodes
+        """
+        return [self.center] + self.neighbors
+
 
 def get_maximal_set_of_k13(graph):
     """
@@ -117,6 +125,25 @@ def get_maximal_set_of_k13(graph):
     return k13_list
 
 
+def check_k13_overlap(k13, optimized_k13_list):
+    """
+    Check for the given K13 if it has overlap with any of the previous K13s.
+    :param k13: K13 to check overlap for
+    :param optimized_k13_list: List of previous K13s
+    :return: Bool whether the K13 has overlap
+    """
+    # Check that the nodes of this K13 have no overlap with the nodes of other K13s
+    overlap_with_previous_k13 = False
+    for optimized_k13 in optimized_k13_list:
+        optimized_k13_nodes = optimized_k13.get_all_nodes()
+
+        for node in k13.get_all_nodes():
+            if node in optimized_k13_nodes:
+                overlap_with_previous_k13 = True
+                
+    return overlap_with_previous_k13
+
+
 def optimize_k13_list(graph, k13_list):
     """
     Check if we can create 2 more K13s by removing 1 and choosing different centers.
@@ -131,6 +158,12 @@ def optimize_k13_list(graph, k13_list):
         k13 = todo_k13_list.pop(0)
         k13.add_k13_to_graph(graph)
 
+        overlap_with_previous_k13 = check_k13_overlap(k13, optimized_k13_list)
+
+        # Skip this K13
+        if overlap_with_previous_k13:
+            continue
+
         possible_centers = k13.neighbors.copy()
         neighbor_nodes = list(set([y for x in k13.neighbors_edges for y in x]))
         possible_centers.extend(neighbor_nodes)
@@ -142,8 +175,8 @@ def optimize_k13_list(graph, k13_list):
         new_k13s_found = False
 
         for combination in list(itertools.combinations(degree_3_possible_centers, 2)):
-            v_neighbors = [neighbor for neighbor in graph.neighbors(combination[0])]
-            w_neighbors = [neighbor for neighbor in graph.neighbors(combination[1])]
+            v_neighbors = list(graph.neighbors(combination[0]))
+            w_neighbors = list(graph.neighbors(combination[1]))
 
             # Check if they have overlapping neighbors or centers as neighbors, which is not allowed
             if not len(intersection(v_neighbors, w_neighbors)) > 0 \
@@ -203,6 +236,9 @@ def create_flow_graph(k13_list):
             capacity += flow_graph[k13_node][k13_child]['capacity']
         flow_graph['source'][k13_node]['capacity'] = capacity
 
+    # TODO remove this
+    draw_flow(flow_graph, len(k13_list), len(grandchildren))
+
     return flow_graph
 
 
@@ -215,6 +251,7 @@ def assign_flow_vertices_to_k13(k13_list, flow_graph):
     """
     max_flow_result = nx.maximum_flow(flow_graph, _s='source', _t='target')
 
+    # TODO fix for non integer flows
     for k13 in k13_list:
         grandchildren = max_flow_result[1][f"k13_{k13.center}"]
 

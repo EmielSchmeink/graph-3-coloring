@@ -23,6 +23,11 @@ def draw_graph_with_color_from_dict(graph, color_dict):
     plt.show()
 
 
+def draw_planar_directed(graph):
+    nx.draw_planar(graph.to_directed(), arrows=True, with_labels=True)
+    plt.show()
+
+
 def draw_graph(graph, node_colors, edge_colors=None):
     if nx.is_planar(graph):
         nx.draw_planar(graph, node_color=node_colors, edge_color=edge_colors, with_labels=True)

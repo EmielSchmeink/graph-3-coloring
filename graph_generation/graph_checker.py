@@ -74,8 +74,7 @@ class GraphChecker:
 
         return False
 
-    @staticmethod
-    def graph_check_induced_cycle(graph, c):
+    def graph_check_induced_cycle(self, graph, c):
         if c == 3:
             # If any of the nodes contain a triangle, we got one
             for key, value in nx.triangles(graph).items():
@@ -83,9 +82,8 @@ class GraphChecker:
                     return True
             return False
 
-        cycles = nx.cycle_basis(graph)
-        for cycle in cycles:
-            if len(cycle) == c:
+        for edge in graph.edges:
+            if len(self.check_induced_cycle_using_path(graph, edge, c)) > 0:
                 return True
 
         return False
@@ -206,9 +204,11 @@ class GraphChecker:
                         endpoint_1 = path_1[-1]
 
                         if graph_without_edge.has_edge(endpoint_0, endpoint_1):
-                            return True
+                            cycle = path_0.copy()
+                            cycle.extend(path_1)
+                            return cycle
 
-        return False
+        return []
 
     def check_crossing_edges(self, graph: Graph, path_0, path_1):
         for v in path_0:
@@ -222,7 +222,7 @@ class GraphChecker:
         if c == 3:
             return nx.triangles(graph, edge[0]) > 0
 
-        return self.check_induced_cycle_using_path(graph, edge, c)
+        return len(self.check_induced_cycle_using_path(graph, edge, c)) > 0
 
     def check_locally_connected(self, graph, nodes):
         for node in nodes:

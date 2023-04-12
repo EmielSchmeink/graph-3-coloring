@@ -13,7 +13,7 @@ def sat_solve(graph):
     edges = graph.edges()
     s = Solver()
 
-    print('Making formula...')
+    print('SAT: Making formula...')
     R = Function('R', IntSort(), BoolSort())
     G = Function('G', IntSort(), BoolSort())
     B = Function('B', IntSort(), BoolSort())
@@ -36,7 +36,7 @@ def sat_solve(graph):
         )
     ))
 
-    print('Solving...')
+    print('SAT: Solving...')
     is_sat = s.check()
 
     if is_sat == sat:

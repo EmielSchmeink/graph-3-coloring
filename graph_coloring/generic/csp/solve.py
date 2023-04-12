@@ -109,31 +109,51 @@ def recurrence_coloring(L, children_dict, color_dict, remaining_graph, vertices_
         if csp_colors is None:
             return None
 
-        for vertex, color in csp_colors.items():
-            color_dict[vertex] = color
+        for node, color in csp_colors.items():
+            color_dict[node] = color
 
         return color_dict
     else:
         x = L.pop(0)
 
-        for color in color_dict[x]:
+        allowed_colors_for_x = color_dict[x]
+
+        for color in allowed_colors_for_x:
             temp_color_dict = color_dict.copy()
             temp_color_dict[x] = color
 
             for child in children_dict[x]:
-                child_colors = color_dict[child]
-                # if color == child_colors:
-                #     return None
+                # Get the current allowed colors for the child
+                if type(temp_color_dict[child]) is not str:
+                    child_colors = temp_color_dict[child].copy()
+                else:
+                    child_colors = temp_color_dict[child]
+
+                    # If there is only 1 color the child can be colored with, and it is the same as the parent
+                    # Then this is an invalid coloring, so we can stop checking
+                    if color == child_colors:
+                        return None
+
+                # Remove the parent color as a possible color
                 if color in child_colors:
                     child_colors.remove(color)
+
                 temp_color_dict[child] = child_colors
 
-            z3_output = recurrence_coloring(L, children_dict, temp_color_dict, remaining_graph, vertices_to_be_colored)
+            # Copy the list of remaining nodes to make sure that if the recursion starts here again
+            # after failing downstream, we know which nodes still need to be colored
+            L_copy = L.copy()
+            z3_output = recurrence_coloring(L_copy,
+                                            children_dict,
+                                            temp_color_dict,
+                                            remaining_graph,
+                                            vertices_to_be_colored)
 
             if z3_output is not None:
                 return z3_output
 
-        # TODO potentially need a raise here, since no colorings of x succeeded
+        # Indicate that using the allowed colors for x does not result into a valid coloring
+        # Use different allowed colors and check again
         return None
 
 

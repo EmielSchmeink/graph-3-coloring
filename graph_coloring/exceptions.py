@@ -12,6 +12,13 @@ class InvalidGraphException(Exception):
     pass
 
 
+class InvalidMultigramException(Exception):
+    """
+    Exception indicating an invalid multigram.
+    """
+    pass
+
+
 def sanity_check_coloring(graph, colors):
     """
     Check that the given color dict contains a color for all nodes.
