@@ -81,42 +81,37 @@ class GraphGenerator:
 
         return g
 
-    def find_graphs_with_conditions(self, nodes, p,
-                                    path_length=None, cycle_size=None, planar=None, diameter=None,
-                                    locally_connected=None, shuffle=None, seed=0):
-        print(f"Seed: {seed}")
-        path = f"graph-nodes-{nodes}-p-{p}-path-{path_length}-cycle-{cycle_size}-" \
-               f"planar-{planar}-diameter-{diameter}-locally_connected-{locally_connected}-shuffle-{shuffle}" \
-               f"-{datetime.now().strftime('%d-%m-%Y-%H:%M:%S')}"
-
-        if not os.path.exists("logs/"):
-            os.makedirs("logs/")
-
-        logging.basicConfig(filename=f"./logs/{path}.log",
-                            filemode='a',
-                            format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
-                            datefmt='%H:%M:%S',
-                            level=logging.INFO)
-
-        graph = self.erdos_renyi_with_checks(nodes, p, path_length, cycle_size, planar, diameter, locally_connected,
-                                             shuffle, seed)
     def find_graphs_with_conditions(self, queue, seed=0):
         # While there are tasks to do, keep running
         while not queue.empty():
             # Get the versions to compare
-            nodes, p, path_length, cycle_size, planar, diameter = queue.get()
+            nodes, p, path_length, cycle_size, planar, diameter, locally_connected, shuffle = queue.get()
+
+            print(f"Seed: {seed}")
+            path = f"graph-nodes-{nodes}-p-{p}-path-{path_length}-cycle-{cycle_size}-" \
+                   f"planar-{planar}-diameter-{diameter}-locally_connected-{locally_connected}-shuffle-{shuffle}" \
+                   f"-{datetime.now().strftime('%d-%m-%Y-%H:%M:%S')}"
+
+            if not os.path.exists("logs/"):
+                os.makedirs("logs/")
+
+            logging.basicConfig(filename=f"./logs/{path}.log",
+                                filemode='a',
+                                format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                                datefmt='%H:%M:%S',
+                                level=logging.INFO)
 
             print(
                 f"Starting thread, amount of nodes: {nodes}, "
                 f"p: {p}, path_length: {path_length}, "
                 f"cycle_size: {cycle_size}, "
                 f"planar: {planar}, "
-                f"diameter {diameter}"
+                f"diameter {diameter}, "
+                f"locally connected {locally_connected}"
             )
 
-            graph = self.erdos_renyi_with_checks(nodes, p, path_length, cycle_size, planar, diameter, seed=seed)
+            graph = self.erdos_renyi_with_checks(nodes, p, path_length, cycle_size, planar, diameter, locally_connected,
+                                                 shuffle, seed)
 
-        # Graph passed all checks, save it
-        self.write_graph(graph, path)
-
-        return graph
+            # Graph passed all checks, save it
+            self.write_graph(graph, path)
