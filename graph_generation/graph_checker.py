@@ -1,21 +1,22 @@
 import networkx as nx
-from networkx import NetworkXNoCycle
-from networkx.algorithms.simple_paths import _empty_generator
+from networkx import Graph
 
-
-class InvalidGraphException(Exception):
-    pass
+from graph_coloring.exceptions import InvalidGraphException, InvalidColoringException
 
 
 class GraphChecker:
     @staticmethod
-    def valid_3_coloring(graph, coloring):
-        # Check that max 3 colors are used, and it is a valid coloring
-        max_3 = len(set(coloring)) <= 3
-        invalid_coloring = any([coloring[int(x)] == coloring[int(y)] for (x, y) in graph.edges()])
-        return max_3 and not invalid_coloring
+    def valid_3_coloring(graph, coloring_dict):
+        # Check that all vertices are colored, max 3 colors are used, and it is a valid coloring
+        assert len(graph.nodes()) == len(coloring_dict)
+        max_3 = len(set([colors for _, colors in coloring_dict.items()])) <= 3
+        invalid_coloring = any([coloring_dict[x] == coloring_dict[y] for (x, y) in graph.edges()])
 
-    def sanity_check_graph(self, graph, path_length=None, cycle_size=None, planarity=None, diameter=None):
+        if not max_3 or invalid_coloring:
+            raise InvalidColoringException
+
+    def sanity_check_graph(self, graph, path_length=None, cycle_size=None, planarity=None, diameter=None,
+                           locally_connected=None):
         if planarity is not None:
             planar = self.graph_check_planar(graph)
             print(f"Planar: {planar}")
@@ -47,9 +48,27 @@ class GraphChecker:
                     f"Graph had a diameter of size {nx.diameter(graph)}, while {diameter} is required"
                 )
 
+        if locally_connected is not None:
+            graph_locally_connected = self.graph_check_locally_connected(graph)
+            print(f"Graph should be locally connected, is: {graph_locally_connected}")
+
+            # The diameter of the graph should be smaller or equal than the given diameter, so negate
+            if not graph_locally_connected:
+                raise InvalidGraphException(
+                    f"Graph was not locally connected"
+                )
+
+    def graph_check_locally_connected(self, graph):
+        for node in graph:
+            print(f"Currently checking node {node} for locally connectedness")
+            if not self.check_locally_connected(graph, [node]):
+                return False
+
+        return True
+
     def graph_check_induced_path(self, graph, n):
         for node in graph:
-            print(f"Currently checking node {node}")
+            print(f"Currently checking node {node} for induced path")
             if self.check_induced_path_old(graph, node, n):
                 return True
 
@@ -86,7 +105,7 @@ class GraphChecker:
         vertices_without_source.remove(node)
 
         # Only get the paths with the size we care for
-        correct_size_paths = [path for path in nx.all_simple_paths(graph, node, vertices_without_source, cutoff=n-1)
+        correct_size_paths = [path for path in nx.all_simple_paths(graph, node, vertices_without_source, cutoff=n - 1)
                               if len(path) == n]
 
         # Check for each path if the simple path is an actual induced path
@@ -98,138 +117,52 @@ class GraphChecker:
             if len(induced_path_cycles) == 0:
                 return True
 
-    @staticmethod
-    def is_path_cycle(graph, path):
-        # For all paths check whether any node contains an edge to another node in the path, thus creating a cycle
-        if len(path) == 2 or len(path) == 3:
-            return False
+    def find_induced_path(self, graph: Graph, s, length_remaining, illegal_nodes):
+        if length_remaining <= 0:
+            return [s]
 
-        it = iter(path)
+        last_path_node = s[-1]
+        paths = []
 
-        for node in it:
-            second_node = next(it, None)
-            third_node = next(it, None)
+        if last_path_node in illegal_nodes:
+            return []
 
-            if second_node is None or third_node is None:
-                return False
+        for v in graph.neighbors(last_path_node):
+            # Check that the neighbor is not the previous node in the path
+            if len(s) > 1 and v == s[-2]:
+                continue
 
-            path_without_neighbors = path.copy()
-            path_without_neighbors.remove(node)
-            path_without_neighbors.remove(second_node)
-            path_without_neighbors.remove(third_node)
+            # Check that no neighbors of v are in the path
+            v_neighbor_in_path = False
 
-            for path_node in path_without_neighbors:
-                if graph.has_edge(second_node, path_node):
-                    return True
+            for v_neighbor in graph.neighbors(v):
+                if not v_neighbor == last_path_node and v_neighbor in s:
+                    v_neighbor_in_path = True
+                    break
 
-        return False
+            if v_neighbor_in_path:
+                continue
 
-    @staticmethod
-    def path_contains_new_edge(path, edge_node):
-        if path[1] == edge_node:
-            return True
+            # Add the neighbor as a possible induced path extension, but don't change s for the other extensions
+            s_new = s.copy()
+            s_new.append(v)
+            new_paths = self.find_induced_path(graph, s_new, length_remaining - 1, illegal_nodes)
 
-        return False
+            paths.extend(new_paths)
 
-    @staticmethod
-    def check_induced_subpath(graph, path):
-        # Check for each path if the simple path is an actual induced path
-        induced_possible_path = nx.induced_subgraph(graph, path)
-        induced_path_cycles = nx.cycle_basis(induced_possible_path)
+        # Add the current path as well
+        paths.append(s)
 
-        # The found path is an actual induced path, and does not contain cycles
-        if len(induced_path_cycles) == 0:
-            return True
+        return paths
 
-        return False
-
-    def add_found_path_to_edge_paths(self, found_path, path_length, edge_neighbor):
-        # If the path contains the new edge, it must be the full path size, otherwise we don't care
-        return self.path_contains_new_edge(found_path, edge_neighbor) and len(found_path) == path_length
-
-    def all_simple_paths(self, graph, source, target, cutoff, edge_neighbor):
-        if source not in graph:
-            raise nx.NodeNotFound(f"source node {source} not in graph")
-        if target in graph:
-            targets = {target}
-        else:
-            try:
-                targets = set(target)
-            except TypeError as err:
-                raise nx.NodeNotFound(f"target node {target} not in graph") from err
-        if source in targets:
-            return _empty_generator()
-        if cutoff is None:
-            cutoff = len(graph) - 1
-        if cutoff < 1:
-            return _empty_generator()
-
-        # The dict of visited nodes
-        visited = dict.fromkeys([source])
-        stack = [iter(graph[source])]
-
-        all_paths = []
-
-        while stack:
-            children = stack[-1]
-            child = next(children, None)
-
-            if child is None:
-                stack.pop()
-                visited.popitem()
-            elif len(visited) < cutoff:
-                if child in visited:
-                    continue
-                if child in targets:
-                    found_path = list(visited) + [child]
-
-                    if self.is_path_cycle(graph, found_path):
-                        continue
-
-                    all_paths.append(found_path)
-
-                visited[child] = None
-
-                if targets - set(visited.keys()):  # expand stack until find all targets
-                    stack.append(iter(graph[child]))
-                else:
-                    visited.popitem()  # maybe other ways to child
-            else:  # len(visited) == cutoff:
-                for target in (targets & (set(children) | {child})) - set(visited.keys()):
-                    found_path_cutoff = list(visited) + [target]
-
-                    # if self.is_path_cycle(graph, found_path_cutoff):
-                    #     continue
-
-                    all_paths.append(found_path_cutoff)
-
-                stack.pop()
-                visited.popitem()
-
-        return all_paths
-
-    def check_induced_path(self, graph, edge, n):
+    def check_induced_path(self, graph: Graph, edge, n):
         # Remove the source as a target
-        vertices_without_sources = list(graph.nodes)
-        vertices_without_sources.remove(edge[0])
-        vertices_without_sources.remove(edge[1])
-
-        graph_without_0 = graph.copy()
-        graph_without_1 = graph.copy()
-
-        graph_without_0.remove_node(edge[0])
-        graph_without_1.remove_node(edge[1])
+        graph_without_edge = graph.copy()
+        graph_without_edge.remove_edge(edge[0], edge[1])
 
         # Separate the paths containing the new edge, and paths not containing the new edge
-        paths_0 = self.all_simple_paths(graph_without_1, edge[0], vertices_without_sources, cutoff=n-1, edge_neighbor=edge[1])
-        paths_1 = self.all_simple_paths(graph_without_0, edge[1], vertices_without_sources, cutoff=n-1, edge_neighbor=edge[0])
-
-        # Make sure the edge nodes themselves also can be used to form a path
-        paths_0.append([edge[0]])
-        paths_1.append([edge[1]])
-
-        # from graph_generation.graph_drawer import draw_graph
-        # draw_graph(graph, None)
+        paths_0 = self.find_induced_path(graph_without_edge, [edge[0]], n - 1, [edge[1], graph.neighbors(edge[1])])
+        paths_1 = self.find_induced_path(graph_without_edge, [edge[1]], n - 1, [edge[0], graph.neighbors(edge[0])])
 
         # Loop over all combinations to form n sized paths from the left and right branch of the edge
         for length_path_0 in range(n):
@@ -238,31 +171,65 @@ class GraphChecker:
             correct_length_path_0 = [path for path in paths_0 if len(path) == length_path_0]
             correct_length_path_1 = [path for path in paths_1 if len(path) == length_path_1]
 
-            possible_induced_paths = []
+            for path_0 in correct_length_path_0:
+                for path_1 in correct_length_path_1:
+                    if not self.check_crossing_edges(graph_without_edge, path_0, path_1):
+                        return True
+
+        return False
+
+    def check_induced_cycle_using_path(self, graph: Graph, edge, n):
+        # Remove the source as a target
+        graph_without_edge = graph.copy()
+        graph_without_edge.remove_edge(edge[0], edge[1])
+
+        # Separate the paths containing the new edge, and paths not containing the new edge
+        paths_0 = self.find_induced_path(graph_without_edge, [edge[0]], n - 1, [edge[1], graph.neighbors(edge[1])])
+        paths_1 = self.find_induced_path(graph_without_edge, [edge[1]], n - 1, [edge[0], graph.neighbors(edge[0])])
+
+        # Loop over all combinations to form n sized paths from the left and right branch of the edge
+        for length_path_0 in range(n):
+            length_path_1 = n - length_path_0
+
+            correct_length_path_0 = [path for path in paths_0 if len(path) == length_path_0]
+            correct_length_path_1 = [path for path in paths_1 if len(path) == length_path_1]
 
             for path_0 in correct_length_path_0:
                 for path_1 in correct_length_path_1:
-                    concat_path = path_0 + path_1
-                    possible_induced_paths.append(concat_path)
+                    path_0_without_endpoint = path_0.copy()
+                    path_1_without_endpoint = path_1.copy()
+                    path_0_without_endpoint.pop(-1)
+                    path_1_without_endpoint.pop(-1)
+                    if not self.check_crossing_edges(graph, path_0, path_1_without_endpoint) or not \
+                            self.check_crossing_edges(graph, path_0_without_endpoint, path_1):
+                        endpoint_0 = path_0[-1]
+                        endpoint_1 = path_1[-1]
 
-            for path in possible_induced_paths:
-                if self.check_induced_subpath(graph, path):
+                        if graph_without_edge.has_edge(endpoint_0, endpoint_1):
+                            return True
+
+        return False
+
+    def check_crossing_edges(self, graph: Graph, path_0, path_1):
+        for v in path_0:
+            for u in path_1:
+                if graph.has_edge(v, u):
                     return True
 
         return False
 
-    @staticmethod
-    def check_induced_cycle(graph, node, c):
+    def check_induced_cycle(self, graph, edge, c):
         if c == 3:
-            return nx.triangles(graph, node) > 0
+            return nx.triangles(graph, edge[0]) > 0
 
-        try:
-            cycles = nx.find_cycle(graph, node)
+        return self.check_induced_cycle_using_path(graph, edge, c)
 
-            for cycle in cycles:
-                if len(cycle) == c:
-                    return True
+    def check_locally_connected(self, graph, nodes):
+        for node in nodes:
+            neighbors = [neighbor for neighbor in graph.neighbors(node)]
+            induced_neighbors = nx.induced_subgraph(graph, neighbors)
 
-            return False
-        except NetworkXNoCycle:
-            return False
+            if nx.number_connected_components(induced_neighbors) != 1:
+                return False
+
+        return True

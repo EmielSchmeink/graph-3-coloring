@@ -1,12 +1,16 @@
 from z3.z3 import *
 
-from graph_coloring.exceptions import InvalidColoringException, sanity_check_coloring
+from graph_coloring.sat_misc import evaluate_model
 
 
 def sat_solve(graph):
+    """
+    Get a 3-coloring for the given graph, or indicate that a 3-coloring is not possible, using a reduction to SAT, and
+    solving using Z3.
+    :param graph: The graph to be colored
+    :return: Dict of colors for all nodes, or None
+    """
     edges = graph.edges()
-    n = len(graph.nodes)
-
     s = Solver()
 
     print('Making formula...')
@@ -17,11 +21,11 @@ def sat_solve(graph):
     s.add(And(
         And(
             [And(
-                Or(R(i), G(i), B(i)),
-                Or(Not(R(i)), Not(G(i))),
-                Or(Not(R(i)), Not(B(i))),
-                Or(Not(G(i)), Not(B(i)))
-            ) for i in range(n)]
+                Or(R(int(i)), G(int(i)), B(int(i))),
+                Or(Not(R(int(i))), Not(G(int(i)))),
+                Or(Not(R(int(i))), Not(B(int(i)))),
+                Or(Not(G(int(i))), Not(B(int(i))))
+            ) for i in graph.nodes]
         ),
         And(
             [And(
@@ -42,21 +46,4 @@ def sat_solve(graph):
         return None
 
     model = s.model()
-    colors = []
-
-    for i in range(n):
-        is_red = model.evaluate(R(i))
-        is_green = model.evaluate(G(i))
-        is_blue = model.evaluate(B(i))
-
-        if is_red:
-            colors.append('red')
-        if is_green:
-            colors.append('green')
-        if is_blue:
-            colors.append('blue')
-
-    print(s.model())
-    sanity_check_coloring(graph, colors)
-
-    return colors
+    return evaluate_model(model, graph.nodes, R, G, B)
