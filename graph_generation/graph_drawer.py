@@ -73,7 +73,7 @@ def draw_k13_list(graph, k13_list):
 
     for k13 in k13_list:
         red_edges.extend(k13.get_k13_edges())
-        green_edges.extend(k13.neighbors_edges)
+        green_edges.extend(k13.children_edges)
 
     draw_graph(graph, None, edge_colors=color_edges(graph, red_edges, green_edges))
 

@@ -1,6 +1,10 @@
+import random
+
 from graph_coloring.generic.csp.bushy_forest import get_maximal_bushy_forest
 from graph_coloring.generic.csp.csp_sat import csp_satisfier
 from graph_coloring.generic.csp.k13 import *
+from graph_generation.graph_checker import GraphChecker
+from graph_generation.graph_drawer import draw_graph_with_color_from_dict
 
 
 def find_vertices_in_cycles(graph):
@@ -53,8 +57,8 @@ def get_all_vertices(bushy_forest, k13_list, graph_without_forest_neighbors_k13,
 
     for k13 in k13_list:
         all_vertices.append(k13.center)
-        all_vertices.extend(k13.neighbors)
-        all_vertices.extend(k13.tree_grandchildren)
+        all_vertices.extend(k13.children)
+        all_vertices.extend(k13.grandchildren)
 
     all_vertices.extend(list(graph_without_forest_neighbors_k13.nodes))
 
@@ -78,15 +82,15 @@ def get_all_vertices_to_be_colored(bushy_forest, k13_list, graph_without_forest_
         all_vertices.extend(tree.get_neighbor_vertices(graph_complete))
 
     for k13 in k13_list:
-        all_vertices.extend(k13.neighbors)
-        all_vertices.extend(k13.tree_grandchildren)
+        all_vertices.extend(k13.children)
+        all_vertices.extend(k13.grandchildren)
 
     all_vertices.extend(list(graph_without_forest_neighbors_k13.nodes))
 
     return list(set(all_vertices))
 
 
-def recurrence_coloring(L, children_dict, color_dict, remaining_graph, vertices_to_be_colored):
+def recurrence_coloring(L, children_dict, color_dict, remaining_graph, vertices_to_be_colored, graph_complete, L_complete):
     """
     Recursively color the root and internal nodes of the bushy forest + K13 centers, and check if the remaining colors
     for the vertices to be colored results in a valid coloring output by SAT, or if it fails to color try all other
@@ -98,7 +102,16 @@ def recurrence_coloring(L, children_dict, color_dict, remaining_graph, vertices_
     :param vertices_to_be_colored: The vertices that still need coloring by SAT
     :return: Dict containing a valid coloring for all remaining vertices and nodes in L
     """
+    L_complete = L_complete.copy()
     if len(L) == 0:
+        tree_subgraph = nx.subgraph(graph_complete, L_complete)
+
+        subdict = {n: color_dict[n] for n in L_complete}
+
+        draw_graph_with_color_from_dict(tree_subgraph, subdict)
+
+        GraphChecker().valid_3_coloring(tree_subgraph, subdict)
+
         to_be_colored_dict = {}
 
         for v in vertices_to_be_colored:
@@ -114,9 +127,12 @@ def recurrence_coloring(L, children_dict, color_dict, remaining_graph, vertices_
 
         return color_dict
     else:
+        # TODO remove this
+        print(L)
         x = L.pop(0)
 
         allowed_colors_for_x = color_dict[x]
+        random.shuffle(allowed_colors_for_x)
 
         for color in allowed_colors_for_x:
             temp_color_dict = color_dict.copy()
@@ -147,7 +163,7 @@ def recurrence_coloring(L, children_dict, color_dict, remaining_graph, vertices_
                                             children_dict,
                                             temp_color_dict,
                                             remaining_graph,
-                                            vertices_to_be_colored)
+                                            vertices_to_be_colored, graph_complete, L_complete)
 
             if z3_output is not None:
                 return z3_output
@@ -186,7 +202,7 @@ def get_colorings(bushy_forest, k13_list, graph_without_forest_neighbors_k13, gr
     color_dict = create_color_dict_for_nodes(all_vertices)
 
     remaining_graph = nx.subgraph(graph_complete, all_vertices_to_be_colored)
-    colors = recurrence_coloring(L, node_children, color_dict, remaining_graph, all_vertices_to_be_colored)
+    colors = recurrence_coloring(L, node_children, color_dict, remaining_graph, all_vertices_to_be_colored, graph_complete, L)
 
     return colors
 
@@ -281,12 +297,12 @@ def csp_solve(graph: nx.Graph):
         forest_vertices_with_neighbors.extend(tree.neighbors)
 
     max_flow_graph = create_flow_graph(optimized_k13_list)
-    k13_list_with_gc = assign_flow_vertices_to_k13(k13_list, max_flow_graph)
+    k13_list_with_gc = assign_flow_vertices_to_k13(optimized_k13_list, max_flow_graph)
 
     for k13 in k13_list_with_gc:
         k13.remove_k13_from_graph(graph_without_forest_neighbors_k13)
 
-        graph_without_forest_neighbors_k13.remove_nodes_from(k13.get_k13_grandchildren())
+        graph_without_forest_neighbors_k13.remove_nodes_from(k13.grandchildren)
 
     graph_without_forest_neighbors_k13.remove_nodes_from(forest_vertices_with_neighbors)
 

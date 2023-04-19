@@ -1,27 +1,27 @@
 import itertools
+import math
 
 import networkx as nx
 
 from graph_coloring.misc import get_vertices_of_degree_n, intersection
-from graph_generation.graph_drawer import draw_flow
 
 
 class K13:
     """Class representing a K1,3 instance."""
     center: str
-    neighbors: list
-    neighbors_edges: list
-    tree_grandchildren: list
+    children: list
+    children_edges: list
+    grandchildren: list
 
-    def __init__(self, center, neighbors, graph):
+    def __init__(self, center, children, graph):
         self.center = center
-        self.neighbors = neighbors
-        self.neighbors_edges = []
-        self.tree_grandchildren = []
+        self.children = children
+        self.children_edges = []
+        self.grandchildren = []
 
-        for neighbor in neighbors:
-            self.neighbors_edges.extend(
-                [edge for edge in graph.edges([neighbor]) if edge[0] != center and edge[1] != center])
+        for child in children:
+            self.children_edges.extend(
+                [edge for edge in graph.edges([child]) if edge[0] != center and edge[1] != center])
 
     def check_if_k13_exists(self, graph: nx.Graph):
         """
@@ -29,20 +29,20 @@ class K13:
         :param graph: Graph to check if it contains this K13
         :return: True if given graph contains this K13, False else
         """
-        if len(self.neighbors) != 3:
+        if len(self.children) != 3:
             raise Exception('A K1,3 must contain exactly 3 neighbors.')
 
         return graph.has_node(self.center) \
-            and graph.has_node(self.neighbors[0]) \
-            and graph.has_node(self.neighbors[1]) \
-            and graph.has_node(self.neighbors[2])
+            and graph.has_node(self.children[0]) \
+            and graph.has_node(self.children[1]) \
+            and graph.has_node(self.children[2])
 
     def get_k13_edges(self):
         """
         Get all internal edges of this K13.
         :return: List of edges
         """
-        return [(self.center, neighbor) for neighbor in self.neighbors]
+        return [(self.center, child) for child in self.children]
 
     def remove_k13_from_graph(self, graph: nx.Graph):
         """
@@ -50,7 +50,7 @@ class K13:
         :param graph: Graph to be removed from
         """
         graph.remove_node(self.center)
-        graph.remove_nodes_from(self.neighbors)
+        graph.remove_nodes_from(self.children)
 
     def add_k13_to_graph(self, graph: nx.Graph):
         """
@@ -58,19 +58,19 @@ class K13:
         :param graph: Graph to be added to
         """
         graph.add_node(self.center)
-        graph.add_nodes_from(self.neighbors)
+        graph.add_nodes_from(self.children)
         graph.add_edges_from(self.get_k13_edges())
-        graph.add_edges_from(self.neighbors_edges)
+        graph.add_edges_from(self.children_edges)
 
-    def get_k13_grandchildren(self):
+    def get_k13_children_neighbors(self):
         """
-        Get the grandchildren of this K13.
-        :return: List of unique grandchildren
+        Get the neighbors of the children of this K13.
+        :return: List of unique neighbors
         """
         neighbor_vertices = []
 
-        for neighbor_edge in self.neighbors_edges:
-            if neighbor_edge[0] in self.neighbors:
+        for neighbor_edge in self.children_edges:
+            if neighbor_edge[0] in self.children:
                 neighbor_vertices.append(neighbor_edge[1])
             else:
                 neighbor_vertices.append(neighbor_edge[0])
@@ -82,14 +82,14 @@ class K13:
         Get the dict of all children of the K13 (so only center).
         :return: Dict of children
         """
-        return {self.center: self.neighbors}
+        return {self.center: self.children}
 
     def get_all_nodes(self):
         """
         Get all internal nodes of the K13.
         :return: List of all internal nodes
         """
-        return [self.center] + self.neighbors
+        return [self.center] + self.children
 
 
 def get_maximal_set_of_k13(graph):
@@ -140,7 +140,7 @@ def check_k13_overlap(k13, optimized_k13_list):
         for node in k13.get_all_nodes():
             if node in optimized_k13_nodes:
                 overlap_with_previous_k13 = True
-                
+
     return overlap_with_previous_k13
 
 
@@ -164,8 +164,8 @@ def optimize_k13_list(graph, k13_list):
         if overlap_with_previous_k13:
             continue
 
-        possible_centers = k13.neighbors.copy()
-        neighbor_nodes = list(set([y for x in k13.neighbors_edges for y in x]))
+        possible_centers = k13.children.copy()
+        neighbor_nodes = list(set([y for x in k13.children_edges for y in x]))
         possible_centers.extend(neighbor_nodes)
         # Remove duplicate nodes, and the old center
         possible_centers = list(set(possible_centers))
@@ -184,6 +184,14 @@ def optimize_k13_list(graph, k13_list):
                     and combination[1] not in v_neighbors:
                 v_k13 = K13(combination[0], v_neighbors, graph)
                 w_k13 = K13(combination[1], w_neighbors, graph)
+
+                v_k13_overlap_with_previous_k13 = check_k13_overlap(v_k13, optimized_k13_list)
+                w_k13_overlap_with_previous_k13 = check_k13_overlap(w_k13, optimized_k13_list)
+
+                # Skip this K13 if there is overlap
+                if v_k13_overlap_with_previous_k13 or w_k13_overlap_with_previous_k13:
+                    continue
+
                 new_k13s_found = True
                 break
 
@@ -200,6 +208,26 @@ def optimize_k13_list(graph, k13_list):
     return optimized_k13_list
 
 
+def floor_flow_capacities(node_capacities, flow_graph):
+    """
+    Convert the given capacity to a integer capacity by flooring it.
+    :param node_capacities: Node and capacity to floor
+    :param flow_graph: Flow graph containing the flow network
+    """
+    for c in node_capacities:
+        flow_graph['source'][c[0]]['capacity'] = math.floor(c[1])
+
+
+def ceil_flow_capacities(node_capacities, flow_graph):
+    """
+    Convert the given capacity to a integer capacity by ceiling it.
+    :param node_capacities: Node and capacity to ceil
+    :param flow_graph: Flow graph containing the flow network
+    """
+    for c in node_capacities:
+        flow_graph['source'][c[0]]['capacity'] = math.ceil(c[1])
+
+
 def create_flow_graph(k13_list):
     """
     Create a flow graph for the K13s and their possible grandchildren.
@@ -211,17 +239,26 @@ def create_flow_graph(k13_list):
     flow_graph.add_node('target')
     grandchildren = []
 
+    all_k13s_vertices = [node for k13 in k13_list for node in k13.get_all_nodes()]
+
     for k13 in k13_list:
         flow_graph.add_node(f"k13_{k13.center}")
         flow_graph.add_edge('source', f"k13_{k13.center}")
-        flow_graph.add_nodes_from(k13.get_k13_grandchildren())
 
-        for grandchild in k13.get_k13_grandchildren():
+        for grandchild in k13.get_k13_children_neighbors():
+            # We don't want vertices of other K13s as potential grandchildren
+            if grandchild in all_k13s_vertices:
+                continue
+
+            flow_graph.add_node(grandchild)
             grandchildren.append(grandchild)
             flow_graph.add_edge(f"k13_{k13.center}", grandchild)
             flow_graph.add_edge(grandchild, 'target', capacity=1)
 
     for grandchild in grandchildren:
+        if grandchild in all_k13s_vertices:
+            continue
+
         gc_parents = [n for n in flow_graph.neighbors(grandchild) if n != 'target']
 
         for gc_parent in gc_parents:
@@ -236,8 +273,42 @@ def create_flow_graph(k13_list):
             capacity += flow_graph[k13_node][k13_child]['capacity']
         flow_graph['source'][k13_node]['capacity'] = capacity
 
-    # TODO remove this
-    draw_flow(flow_graph, len(k13_list), len(grandchildren))
+    non_integer_capacities = []
+
+    for k13 in k13_list:
+        k13_node = f"k13_{k13.center}"
+        source_k13_capacity = flow_graph['source'][k13_node]['capacity']
+
+        if not float(source_k13_capacity).is_integer():
+            non_integer_capacities.append((k13_node, source_k13_capacity))
+
+    non_integer_capacities.sort(key=lambda x: x[1])
+
+    # Greedily convert the fractional capacities into integer capacities
+    half_integer_capacities = [c for c in non_integer_capacities if c[1] % 1 == 0.5]
+
+    if len(half_integer_capacities) % 2 != 0:
+        # TODO the case that we have an uneven number of half integer capacities
+        assert False
+
+    less_integer_capacities = [c for c in non_integer_capacities if c[1] % 1 < 0.5]
+    more_integer_capacities = [c for c in non_integer_capacities if c[1] % 1 > 0.5]
+
+    floor_flow_capacities(less_integer_capacities, flow_graph)
+    ceil_flow_capacities(more_integer_capacities, flow_graph)
+
+    half_to_floor = half_integer_capacities[:len(half_integer_capacities) // 2]
+    half_to_ceil = half_integer_capacities[len(half_integer_capacities) // 2:]
+
+    floor_flow_capacities(half_to_floor, flow_graph)
+    ceil_flow_capacities(half_to_ceil, flow_graph)
+
+    for k13 in k13_list:
+        for grandchild in k13.get_k13_children_neighbors():
+            if grandchild in all_k13s_vertices:
+                continue
+
+            flow_graph[f"k13_{k13.center}"][grandchild]['capacity'] = 1
 
     return flow_graph
 
@@ -251,12 +322,11 @@ def assign_flow_vertices_to_k13(k13_list, flow_graph):
     """
     max_flow_result = nx.maximum_flow(flow_graph, _s='source', _t='target')
 
-    # TODO fix for non integer flows
     for k13 in k13_list:
         grandchildren = max_flow_result[1][f"k13_{k13.center}"]
 
         for grandchild in grandchildren:
             if grandchildren[grandchild] == 1:
-                k13.tree_grandchildren.append(grandchild)
+                k13.grandchildren.append(grandchild)
 
     return k13_list
