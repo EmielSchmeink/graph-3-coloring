@@ -115,6 +115,7 @@ class GraphChecker:
             if len(induced_path_cycles) == 0:
                 return True
 
+
     def find_induced_path(self, graph: Graph, s, length_remaining, illegal_nodes):
         if length_remaining <= 0:
             return [s]
@@ -226,10 +227,11 @@ class GraphChecker:
 
     def check_locally_connected(self, graph, nodes):
         for node in nodes:
-            neighbors = [neighbor for neighbor in graph.neighbors(node)]
+            neighbors = list(graph.neighbors(node))
             induced_neighbors = nx.induced_subgraph(graph, neighbors)
 
-            if nx.number_connected_components(induced_neighbors) != 1:
+            num_ccs = nx.number_connected_components(induced_neighbors)
+            if num_ccs != 0 and num_ccs != 1:
                 return False
 
         return True

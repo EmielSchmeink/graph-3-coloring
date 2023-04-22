@@ -8,6 +8,7 @@ import networkx as nx
 import pyprog as pyprog
 
 from graph_generation.graph_checker import GraphChecker
+from graph_generation.graph_drawer import draw_graph
 
 
 class GraphGenerator:
@@ -75,11 +76,44 @@ class GraphGenerator:
         prog.end()
 
         # Sanity check graph
-        from graph_generation.graph_drawer import draw_graph
         draw_graph(g, None)
         self.checker.sanity_check_graph(g, path_length, cycle_size, planar, diameter, locally_connected)
 
         return g
+
+    def make_neighbors_connected(self, graph, node):
+        neighbors = list(graph.neighbors(node))
+        induced_neighbors = nx.induced_subgraph(graph, neighbors)
+
+        ccs = list(nx.connected_components(induced_neighbors))
+
+        for i in range(len(ccs)-1):
+            cc_1 = list(ccs[i])
+            cc_2 = list(ccs[i+1])
+
+            graph.add_edge(cc_1[0], cc_2[0])
+
+    def locally_connected_generation(self, n, p,
+                                     path_length=None, cycle_size=None, planar=None, diameter=None,
+                                     locally_connected=None, shuffle=True, seed=None):
+        random.seed(seed)
+
+        graph = nx.erdos_renyi_graph(n, p, seed)
+        nodes = list(graph.nodes)
+        is_locally_connected = self.checker.check_locally_connected(graph, nodes)
+
+        if is_locally_connected:
+            return graph
+
+        for node in nodes:
+            is_locally_connected = self.checker.check_locally_connected(graph, [node])
+            if not is_locally_connected:
+                self.make_neighbors_connected(graph, node)
+
+        draw_graph(graph, None)
+        self.checker.sanity_check_graph(graph, path_length, cycle_size, planar, diameter, locally_connected)
+
+        return graph
 
     def find_graphs_with_conditions(self, nodes, p,
                                     path_length=None, cycle_size=None, planar=None, diameter=None,
@@ -98,8 +132,12 @@ class GraphGenerator:
                             datefmt='%H:%M:%S',
                             level=logging.INFO)
 
-        graph = self.erdos_renyi_with_checks(nodes, p, path_length, cycle_size, planar, diameter, locally_connected,
-                                             shuffle, seed)
+        if locally_connected is None:
+            graph = self.erdos_renyi_with_checks(nodes, p, path_length, cycle_size, planar, diameter, locally_connected,
+                                                 shuffle, seed)
+        else:
+            graph = self.locally_connected_generation(nodes, p, path_length, cycle_size, planar, diameter,
+                                                      locally_connected, shuffle, seed)
 
         # Graph passed all checks, save it
         self.write_graph(graph, path)
