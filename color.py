@@ -3,9 +3,9 @@ import os
 import networkx as nx
 
 from graph_coloring.generic.csp.solve import csp_solve
-from graph_coloring.generic.dsatur import dsatur_solve
-from graph_coloring.generic.sat import sat_solve
-from graph_coloring.non_generic.locally_connected import locally_connected_solve
+from graph_coloring.generic.dsatur.solve import dsatur_solve
+from graph_coloring.generic.sat.solve import sat_solve
+from graph_coloring.non_generic.locally_connected.solve import locally_connected_solve
 from graph_coloring.non_generic.planar_triangle_free.solve import planar_solve
 from graph_generation.graph_checker import GraphChecker
 from graph_generation.graph_drawer import draw_graph_with_color_from_dict, draw_graph
