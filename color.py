@@ -6,6 +6,7 @@ from graph_coloring.generic.csp.solve import csp_solve
 from graph_coloring.generic.dsatur.solve import dsatur_solve
 from graph_coloring.generic.sat.solve import sat_solve
 from graph_coloring.non_generic.locally_connected.solve import locally_connected_solve
+from graph_coloring.non_generic.p4_c5.solve import p4_c5_solve
 from graph_coloring.non_generic.planar_triangle_free.solve import planar_solve
 from graph_generation.graph_checker import GraphChecker
 from graph_generation.graph_drawer import draw_graph_with_color_from_dict, draw_graph
@@ -30,6 +31,16 @@ def color_locally_connected(graph):
 def color_sat(graph):
     original_graph = graph.copy()
     colors = sat_solve(graph)
+
+    if colors is not None:
+        draw_and_check_coloring(original_graph, colors)
+        return True
+    return False
+
+
+def color_p4_c5(graph):
+    original_graph = graph.copy()
+    colors = p4_c5_solve(graph)
 
     if colors is not None:
         draw_and_check_coloring(original_graph, colors)
@@ -70,7 +81,7 @@ for graph_path in os.listdir('graphs'):
     print(f"Coloring graph {graph_path}")
     draw_graph(graph, None)
     print(f"Finished drawing {graph_path}")
-    locally_connected_graph = graph.copy()
+    # locally_connected_graph = graph.copy()
     # csp_graph = graph.copy()
     sat_graph = graph.copy()
     locally_connected_colorable = color_locally_connected(locally_connected_graph)

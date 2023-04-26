@@ -5,21 +5,8 @@ graph_generator = GraphGenerator(checker=GraphChecker)
 
 # p path cycle planar diameter locally_connected
 configurations = [
-    # [0.3, None, 3, True, None],
-    # [0.3, None, 3, True, None, None],
-    # [0.5, None, 3, True, None, None],
-    # [0.8, None, 3, True, None, None],
-    # [0.3, 4, 5, None, None],
-    # [0.5, 4, 5, None, None, None],
-    # [0.8, 4, 5, None, None, None],
-    # [0.3, 7, 3, None, None, None],
-    # [0.5, 7, 3, None, None, None],
-    # [0.5, 7, 3, None, None, None],
-    [0.1, None, None, None, None, True],
-    [0.2, None, None, None, None, True],
-    [0.3, None, None, None, None, True],
-    [0.4, None, None, None, None, True],
-    [0.7, None, None, None, None, True],
+    [0.1, 4, 5, None, None, None],
+    [0.4, 4, 5, None, None, None],
 ]
 
 for config in configurations:
