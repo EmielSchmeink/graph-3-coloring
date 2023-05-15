@@ -71,7 +71,7 @@ def create_edge_sat(graph, R, G, B):
     )
 
 
-def csp_satisfier(graph, allowed_vertex_color_dict):
+def list_sat_satisfier(graph, allowed_vertex_color_dict):
     """
     Create a coloring for the given graph with restrictions on what colors are allowed per vertex (list coloring).
     :param graph: Graph containing the vertices and edges
@@ -80,7 +80,7 @@ def csp_satisfier(graph, allowed_vertex_color_dict):
     """
     s = Solver()
 
-    print('CSP: Making formula...')
+    print('List SAT: Making formula...')
     R = Function('R', IntSort(), BoolSort())
     G = Function('G', IntSort(), BoolSort())
     B = Function('B', IntSort(), BoolSort())
@@ -89,13 +89,13 @@ def csp_satisfier(graph, allowed_vertex_color_dict):
     edge_sat = create_edge_sat(graph, R, G, B)
     s.add(And(vertex_sat, edge_sat))
 
-    print('CSP: Solving...')
+    print('List SAT: Solving...')
     is_sat = s.check()
 
     if is_sat == sat:
-        print('CSP: Remaining SAT 3-coloring possible, evaluating model...')
+        print('List SAT: Remaining SAT 3-coloring possible, evaluating model...')
     elif is_sat == unsat:
-        print('CSP: No 3-coloring possible for this bushy tree coloring!')
+        print('List SAT: No 3-coloring possible for this bushy tree coloring!')
         return None
 
     model = s.model()

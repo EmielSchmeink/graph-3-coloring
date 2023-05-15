@@ -1,8 +1,9 @@
 import random
 
 from graph_coloring.generic.csp.bushy_forest import get_maximal_bushy_forest
-from graph_coloring.generic.csp.csp_sat import csp_satisfier
 from graph_coloring.generic.csp.k13 import *
+from graph_coloring.generic.csp.list_sat import list_sat_satisfier
+from graph_coloring.misc import color_low_degree_vertices
 from graph_generation.graph_checker import GraphChecker
 from graph_generation.graph_drawer import draw_graph_with_color_from_dict
 
@@ -20,8 +21,6 @@ def find_vertices_in_cycles(graph):
         graph_3_unfrozen = graph.copy()
         # TODO bit hacky, exits while when find_cycle fails to find a cycle, not in a nice way
         while cycles_found:
-            # draw_graph(graph_3_unfrozen, None)
-
             found_cycle = nx.find_cycle(graph_3_unfrozen)
             unique_vertices = set(list(sum(found_cycle, ())))
             graph_cycles.append(unique_vertices)
@@ -108,6 +107,7 @@ def recurrence_coloring(L, children_dict, color_dict, remaining_graph, vertices_
 
         subdict = {n: color_dict[n] for n in L_complete}
 
+        # TODO remove this
         draw_graph_with_color_from_dict(tree_subgraph, subdict)
 
         GraphChecker().valid_3_coloring(tree_subgraph, subdict)
@@ -117,7 +117,7 @@ def recurrence_coloring(L, children_dict, color_dict, remaining_graph, vertices_
         for v in vertices_to_be_colored:
             to_be_colored_dict[v] = color_dict[v]
 
-        csp_colors = csp_satisfier(remaining_graph, to_be_colored_dict)
+        csp_colors = list_sat_satisfier(remaining_graph, to_be_colored_dict)
 
         if csp_colors is None:
             return None
@@ -207,29 +207,6 @@ def get_colorings(bushy_forest, k13_list, graph_without_forest_neighbors_k13, gr
     return colors
 
 
-def get_possible_colors(neighbors, color_dict):
-    """
-    Get the possible remaining colors after removing the ones already in use by the given neighbors.
-    :param neighbors: List of neighbors
-    :param color_dict: Dict containing the available colors for each node
-    :return: A list of possible colors
-    """
-    possible_colors = ['red', 'green', 'blue']
-    neighbor_colors = []
-
-    for neighbor in neighbors:
-        try:
-            neighbor_colors.append(color_dict[neighbor])
-        except KeyError:
-            # print(f"Neighbor {neighbor} not yet colored")
-            pass
-
-    for neighbor_color in set(neighbor_colors):
-        possible_colors.remove(neighbor_color)
-
-    return possible_colors
-
-
 def csp_solve(graph: nx.Graph):
     """
     Get a 3-coloring for the given graph, or indicate that a 3-coloring is not possible, using the CSP algorithm
@@ -314,10 +291,7 @@ def csp_solve(graph: nx.Graph):
         return None
 
     # Color the low degree vertices, cycles and large components efficiently
-    for low_degree_vertex in low_degree_vertices:
-        neighbors = list(nx.neighbors(graph_complete, low_degree_vertex))
-        possible_colors = get_possible_colors(neighbors, colors_dict)
-        colors_dict[low_degree_vertex] = possible_colors[0]
+    color_low_degree_vertices(graph_complete, low_degree_vertices, colors_dict)
 
     # for degree_3_cycle in graph_3_cycle_vertices:
     #     for vertex in degree_3_cycle:

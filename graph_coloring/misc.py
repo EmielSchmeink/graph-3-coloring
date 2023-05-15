@@ -34,3 +34,39 @@ def intersection(list1, list2, sort=False):
     intersected.sort()
 
     return intersected
+
+
+def get_possible_colors(neighbors, color_dict):
+    """
+    Get the possible remaining colors after removing the ones already in use by the given neighbors.
+    :param neighbors: List of neighbors
+    :param color_dict: Dict containing the available colors for each node
+    :return: A list of possible colors
+    """
+    possible_colors = ['red', 'green', 'blue']
+    neighbor_colors = []
+
+    for neighbor in neighbors:
+        try:
+            neighbor_colors.append(color_dict[neighbor])
+        except KeyError:
+            # print(f"Neighbor {neighbor} not yet colored")
+            pass
+
+    for neighbor_color in set(neighbor_colors):
+        possible_colors.remove(neighbor_color)
+
+    return possible_colors
+
+
+def color_low_degree_vertices(graph, low_degree_vertices, colors_dict):
+    """
+    Color the nodes with degree <= 2 greedily, since there is always a color that's still available.
+    :param graph: Graph to color nodes in
+    :param low_degree_vertices: List of nodes with degree <= 2
+    :param colors_dict: Dict containing the available colors for each node
+    """
+    for low_degree_vertex in low_degree_vertices:
+        neighbors = list(nx.neighbors(graph, low_degree_vertex))
+        possible_colors = get_possible_colors(neighbors, colors_dict)
+        colors_dict[low_degree_vertex] = possible_colors[0]

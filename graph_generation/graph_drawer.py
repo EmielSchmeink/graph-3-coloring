@@ -31,12 +31,12 @@ def draw_planar_directed(graph):
 def draw_graph(graph, node_colors, edge_colors=None):
     if nx.is_planar(graph):
         nx.draw_planar(graph, node_color=node_colors, edge_color=edge_colors, with_labels=True)
-    elif nx.is_bipartite(graph):
+    elif nx.is_bipartite(graph) and len(list(nx.connected_components(graph))) == 1:
         w = nx.bipartite.sets(graph)[0]
         nx.draw(graph, pos=nx.bipartite_layout(graph, w),
                 node_color=node_colors, edge_color=edge_colors, with_labels=True)
     else:
-        nx.draw_kamada_kawai(graph, node_color=node_colors, edge_color=edge_colors, with_labels=True)
+        nx.draw_spring(graph, node_color=node_colors, edge_color=edge_colors, with_labels=True)
     plt.show()
 
 

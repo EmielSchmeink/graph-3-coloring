@@ -6,24 +6,22 @@ graph_generator = GraphGenerator(checker=GraphChecker)
 # p path cycle planar diameter locally_connected
 configurations = [
     # [0.3, None, 3, True, None],
-    # [0.3, None, 3, True, None, None],
-    # [0.5, None, 3, True, None, None],
-    # [0.8, None, 3, True, None, None],
+    # [0.7, None, 3, True, None, None],
+    # [0.8, None, 3, True, None],
     # [0.3, 4, 5, None, None],
-    # [0.5, 4, 5, None, None, None],
-    # [0.8, 4, 5, None, None, None],
+    # [0.5, 4, 5, None, None],
+    # [0.8, 4, 5, None, None],
+    # [0.3, 7, 3, None, None],
     # [0.3, 7, 3, None, None, None],
     # [0.5, 7, 3, None, None, None],
-    # [0.5, 7, 3, None, None, None],
-    [0.1, None, None, None, None, True],
-    [0.2, None, None, None, None, True],
-    [0.3, None, None, None, None, True],
-    [0.4, None, None, None, None, True],
-    [0.7, None, None, None, None, True],
+    # [0.7, 7, 3, None, None, None],
+    [0.05, 7, 3, None, None, None],
+    # [0.5, 7, 3, None, None],
+    # [0.7, None, None, None, None, True],
 ]
 
 for config in configurations:
-    for n in [10, 20, 25, 30]:
+    for n in [10, 20, 30, 40, 50, 75, 34, 67, 69]:
         shuffle = True
         print(f"Generating graph with nodes {n}, p: {config[0]}, path: {config[1]}, cycle: {config[2]}, "
               f"planar: {config[3]}, diameter: {config[4]}, locally_connected: {config[5]}, shuffle: {shuffle}")

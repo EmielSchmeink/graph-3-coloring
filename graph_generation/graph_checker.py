@@ -16,7 +16,7 @@ class GraphChecker:
             raise InvalidColoringException
 
     def sanity_check_graph(self, graph, path_length=None, cycle_size=None, planarity=None, diameter=None,
-                           locally_connected=None):
+                           locally_connected=None, debug=None):
         if planarity is not None:
             planar = self.graph_check_planar(graph)
             print(f"Planar: {planar}")
@@ -26,14 +26,16 @@ class GraphChecker:
 
         if cycle_size is not None:
             contains_induced_cycle = self.graph_check_induced_cycle(graph, cycle_size)
-            print(f"Contains induced cycle of length {cycle_size}: {contains_induced_cycle}")
+            if debug:
+                print(f"Contains induced cycle of length {cycle_size}: {contains_induced_cycle}")
 
             if contains_induced_cycle:
                 raise InvalidGraphException(f"Graph had a cycle of size {cycle_size}")
 
         if path_length is not None:
-            contains_induced_path = self.graph_check_induced_path(graph, path_length)
-            print(f"Contains induced path of length {path_length}: {contains_induced_path}")
+            contains_induced_path = self.graph_check_induced_path(graph, path_length, debug=debug)
+            if debug:
+                print(f"Contains induced path of length {path_length}: {contains_induced_path}")
 
             if contains_induced_path:
                 raise InvalidGraphException(f"Graph had a path of size {path_length}")
@@ -66,10 +68,11 @@ class GraphChecker:
 
         return True
 
-    def graph_check_induced_path(self, graph, n):
+    def graph_check_induced_path(self, graph, n, debug=False):
         for node in graph:
-            print(f"Currently checking node {node} for induced path")
-            if self.check_induced_path_old(graph, node, n):
+            if debug:
+                print(f"Currently checking node {node} for induced path")
+            if self.get_induced_path(graph, [node], n):
                 return True
 
         return False
@@ -97,7 +100,7 @@ class GraphChecker:
         return nx.diameter(graph) <= d
 
     @staticmethod
-    def check_induced_path_old(graph, node, n):
+    def check_induced_path_brute_force(graph, node, n):
         # Remove the source as a target
         vertices_without_source = list(graph.nodes)
         vertices_without_source.remove(node)
@@ -115,6 +118,38 @@ class GraphChecker:
             if len(induced_path_cycles) == 0:
                 return True
 
+    def get_induced_path(self, graph: Graph, s, length_remaining):
+        if length_remaining <= 0:
+            return s
+
+        total_path = []
+        last_path_node = s[-1]
+
+        for v in graph.neighbors(last_path_node):
+            # Check that the neighbor is not the previous node in the path
+            if len(s) > 1 and v == s[-2]:
+                continue
+
+            # Check that no neighbors of v are in the path
+            v_neighbor_in_path = False
+
+            for v_neighbor in graph.neighbors(v):
+                if not v_neighbor == last_path_node and v_neighbor in s:
+                    v_neighbor_in_path = True
+                    break
+
+            if v_neighbor_in_path:
+                continue
+
+            # Add the neighbor as a possible induced path extension, but don't change s for the other extensions
+            s_new = s.copy()
+            s_new.append(v)
+            total_path = self.get_induced_path(graph, s_new, length_remaining - 1)
+
+            if len(total_path) > 0:
+                return total_path
+
+        return total_path
 
     def find_induced_path(self, graph: Graph, s, length_remaining, illegal_nodes):
         if length_remaining <= 0:
@@ -154,7 +189,7 @@ class GraphChecker:
 
         return paths
 
-    def check_induced_path(self, graph: Graph, edge, n):
+    def check_induced_path_using_edge(self, graph: Graph, edge, n):
         # Remove the source as a target
         graph_without_edge = graph.copy()
         graph_without_edge.remove_edge(edge[0], edge[1])
@@ -173,9 +208,9 @@ class GraphChecker:
             for path_0 in correct_length_path_0:
                 for path_1 in correct_length_path_1:
                     if not self.check_crossing_edges(graph_without_edge, path_0, path_1):
-                        return True
+                        return path_0 + path_1
 
-        return False
+        return []
 
     def check_induced_cycle_using_path(self, graph: Graph, edge, n):
         # Remove the source as a target
@@ -218,6 +253,9 @@ class GraphChecker:
                     return True
 
         return False
+
+    def check_induced_path(self, graph, edge, n):
+        return len(self.check_induced_path_using_edge(graph, edge, n)) > 0
 
     def check_induced_cycle(self, graph, edge, c):
         if c == 3:

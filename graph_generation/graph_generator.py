@@ -7,6 +7,7 @@ from datetime import datetime
 import networkx as nx
 import pyprog as pyprog
 
+from graph_coloring.misc import intersection
 from graph_generation.graph_checker import GraphChecker
 from graph_generation.graph_drawer import draw_graph
 
@@ -24,6 +25,11 @@ class GraphGenerator:
             os.makedirs("graphs/")
         nx.write_adjlist(graph, path)
 
+    def split_list(self, alist, wanted_parts=1):
+        length = len(alist)
+        return [alist[i * length // wanted_parts: (i + 1) * length // wanted_parts]
+                for i in range(wanted_parts)]
+
     def erdos_renyi_with_checks(self, n, p,
                                 path_length=None, cycle_size=None, planar=None, diameter=None, locally_connected=None,
                                 shuffle=True, seed=None):
@@ -34,13 +40,17 @@ class GraphGenerator:
         g = nx.Graph()
 
         if shuffle:
-            random.shuffle(edges)
+            splits = self.split_list(edges, 4)
+            split_to_shuffle = splits[0]
+            random.shuffle(split_to_shuffle)
+
+            edges = split_to_shuffle + splits[1] + splits[2] + splits[3]
 
         # Add all n vertices to the graph without edges
         g.add_nodes_from(range(n))
 
         # Create a PyProg ProgressBar Object
-        prog = pyprog.ProgressBar("Generation ", " OK!")
+        prog = pyprog.ProgressBar("Generation ", "OK!")
 
         for i, e in enumerate(edges):
             # Update status
@@ -87,15 +97,13 @@ class GraphGenerator:
 
         ccs = list(nx.connected_components(induced_neighbors))
 
-        for i in range(len(ccs)-1):
+        for i in range(len(ccs) - 1):
             cc_1 = list(ccs[i])
-            cc_2 = list(ccs[i+1])
+            cc_2 = list(ccs[i + 1])
 
             graph.add_edge(cc_1[0], cc_2[0])
 
-    def locally_connected_generation(self, n, p,
-                                     path_length=None, cycle_size=None, planar=None, diameter=None,
-                                     locally_connected=None, shuffle=True, seed=None):
+    def locally_connected_generation(self, n, p, locally_connected=None, seed=None):
         random.seed(seed)
 
         graph = nx.erdos_renyi_graph(n, p, seed)
@@ -111,7 +119,104 @@ class GraphGenerator:
                 self.make_neighbors_connected(graph, node)
 
         draw_graph(graph, None)
+        self.checker.sanity_check_graph(graph, locally_connected=locally_connected)
+
+        return graph
+
+    def connect_components(self, graph, cc1, cc2, path_length):
+        for node1 in cc1:
+            for node2 in cc2:
+                disconnected_graph = graph.copy()
+                disconnected_graph.add_edge(node1, node2)
+
+                if not self.checker.check_induced_path(disconnected_graph, (node1, node2), path_length):
+                    graph.add_edge(node1, node2)
+                    return
+
+        print('Components could not be connected...')
+        return
+
+    def try_make_induced_path_free_graph_connected(self, graph, path_length, cycle_size, planar, diameter,
+                                                   locally_connected):
+        to_be_connected_graph = graph.copy()
+        ccs = list(nx.connected_components(to_be_connected_graph))
+
+        if len(ccs) == 1:
+            print('Graph was already connected...')
+            return to_be_connected_graph
+
+        for cc1 in ccs:
+            for cc2 in ccs:
+                if cc1 == cc2:
+                    break
+
+                self.connect_components(to_be_connected_graph, cc1, cc2, path_length)
+
+                if len(list(nx.connected_components(to_be_connected_graph))) == 1:
+                    self.checker.sanity_check_graph(graph, path_length, cycle_size, planar, diameter, locally_connected)
+                    return to_be_connected_graph
+
         self.checker.sanity_check_graph(graph, path_length, cycle_size, planar, diameter, locally_connected)
+        return to_be_connected_graph
+
+    def fix_induced_path(self, graph, path):
+        reverse_path = path.copy()
+        reverse_path.reverse()
+
+        for i, node1 in enumerate(path):
+            for j, node2 in enumerate(reverse_path):
+                neighbors1 = list(graph.neighbors(node1))
+                neighbors2 = list(graph.neighbors(node2))
+                overlap = intersection(neighbors1, neighbors2)
+
+                node1_has_node2_neighbor = intersection(neighbors1, [node2])
+                node2_has_node1_neighbor = intersection(neighbors2, [node1])
+
+                if len(node1_has_node2_neighbor) == 0 and len(node2_has_node1_neighbor) == 0 and len(overlap) == 0:
+                    graph.add_edge(node1, node2)
+                    return True
+
+        # Could not fix path, greedily removing edge in the path
+        # for i in range(len(path)-1):
+        #     if graph.has_edge(path[i], path[i+1]):
+        #         graph.remove_edge(path[i], path[i+1])
+        return False
+
+    def fully_connect_sets(self, graph, set1, set2):
+        edges = []
+
+        for node1 in set1:
+            for node2 in set2:
+                edges.append((node1, node2))
+
+        graph.add_edges_from(edges)
+
+    def path_free_generation(self, nodes, p, path_length, cycle_size, shuffle, seed=123):
+        random.seed(seed)
+
+        graph = nx.Graph()
+        graph.add_nodes_from(range(nodes))
+
+        node_partitions = self.split_list(list(graph.nodes), 6)
+
+        self.fully_connect_sets(graph, node_partitions[0], node_partitions[1])
+        self.fully_connect_sets(graph, node_partitions[1], node_partitions[2])
+
+        self.fully_connect_sets(graph, node_partitions[3], node_partitions[4])
+        self.fully_connect_sets(graph, node_partitions[4], node_partitions[5])
+
+        node0 = node_partitions[0][-1]
+        node2 = node_partitions[2][-1]
+        node3 = node_partitions[3][0]
+        node4 = node_partitions[4][0]
+
+        graph.add_edge(node0, node3)
+        graph.add_edge(node2, node4)
+
+        draw_graph(graph, None)
+        assert len(list(nx.connected_components(graph))) == 1
+        self.checker.sanity_check_graph(graph, path_length=path_length, cycle_size=cycle_size, debug=True)
+        print(nx.density(graph))
 
         return graph
 
@@ -132,12 +237,13 @@ class GraphGenerator:
                             datefmt='%H:%M:%S',
                             level=logging.INFO)
 
-        if locally_connected is None:
-            graph = self.erdos_renyi_with_checks(nodes, p, path_length, cycle_size, planar, diameter, locally_connected,
-                                                 shuffle, seed)
+        if locally_connected is not None:
+            graph = self.locally_connected_generation(nodes, p, locally_connected, seed)
+        elif path_length is not None:
+            graph = self.path_free_generation(nodes, p, path_length, cycle_size, shuffle, seed)
         else:
-            graph = self.locally_connected_generation(nodes, p, path_length, cycle_size, planar, diameter,
-                                                      locally_connected, shuffle, seed)
+            graph = self.erdos_renyi_with_checks(nodes, p, path_length, cycle_size, planar, diameter,
+                                                 locally_connected, shuffle, seed)
 
         # Graph passed all checks, save it
         self.write_graph(graph, path)
