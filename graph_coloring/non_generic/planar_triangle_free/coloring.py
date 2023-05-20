@@ -86,18 +86,19 @@ def get_allowed_colors(node, graph, color_dict):
     return get_neighbors_coloring(neighbors, color_dict)
 
 
-def handle_octagram_coloring(octagram, graph, color_dict):
+def handle_v1_to_v4_coloring(multigram, graph, color_dict):
     """
-    Color the given octagram, and update the color dict.
-    :param octagram: Octagram to be colored
+    Color the given octagram or pentagram (all multigrams where v1 to v4 are reduced),
+    and update the color dict.
+    :param multigram: Octagram or pentagram to be colored
     :param graph: Graph to check neighbors in
     :param color_dict: Dict containing fixed node: color pairs
     """
     for i in range(2):
         # If the opposite nodes can use the same color, do so, because their neighbors might
         # not have any colors remaining otherwise
-        node = octagram[0][i]
-        opposite_node = octagram[0][i+2 % 4]
+        node = multigram[0][i]
+        opposite_node = multigram[0][i + 2 % 4]
         identified_node = get_identified_nodes(node)[0]
         identified_opposite_node = get_identified_nodes(opposite_node)[0]
         allowed_colors_node = get_allowed_colors(identified_node, graph, color_dict)
@@ -113,6 +114,19 @@ def handle_octagram_coloring(octagram, graph, color_dict):
             color_dict[identified_opposite_node] = same_allowed_colors[0]
 
 
+def handle_decagram_coloring(multigram, graph, color_dict):
+    """
+    Color decagram greedily.
+    :param multigram: Decagram to color
+    :param graph: Graph to get allowed colors in
+    :param color_dict: Dict containing fixed node: color pairs
+    """
+    for node in multigram:
+        allowed_colors = get_allowed_colors(node, graph, color_dict)
+        identified_node = get_identified_nodes(node)[0]
+        color_dict[identified_node] = allowed_colors[0]
+
+
 def handle_multigram_coloring(multigram, graph, color_dict):
     """
     Color the graph using the given multigram.
@@ -126,11 +140,11 @@ def handle_multigram_coloring(multigram, graph, color_dict):
         case 'tetragram':
             handle_identified_node_coloring(multigram, color_dict)
         case 'octagram':
-            handle_octagram_coloring(multigram, graph, color_dict)
+            handle_v1_to_v4_coloring(multigram, graph, color_dict)
         case 'pentagram':
-            assert False
+            handle_v1_to_v4_coloring(multigram, graph, color_dict)
         case 'decagram':
-            assert False
+            handle_decagram_coloring(multigram, graph, color_dict)
         case 'hexagram':
             handle_identified_node_coloring(multigram, color_dict)
 

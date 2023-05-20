@@ -37,18 +37,32 @@ def get_distinct_neighbor(pentagram_node, pentagram, graph):
             return node_neighbor
 
 
-def check_safety_k_5(multigram, graph):
+def get_distinct_neighbors(multigram, graph):
     """
-    TODO finish safety pentagram
-    :param multigram:
-    :param graph:
+    Get the distinct neighbors of a pentagram or decagram.
+    :param multigram: The penta or decagram to find the distinct neighbors for
+    :param graph: Graph to find the neighbors in
+    :return: List of distinct neighbors for each node of the pentagram
     """
     distinct_neighbors = []
+
     for node in multigram:
         distinct_neighbors.append(get_distinct_neighbor(node, multigram, graph))
 
     if len(distinct_neighbors) != 5:
         return False
+
+    return distinct_neighbors
+
+
+def check_safety_pentagram(multigram, graph):
+    """
+    Check the pentagram for safety as according to the paper.
+    :param multigram: Pentagram to check safety for
+    :param graph: Graph to do the safety checks in
+    :return Bool whether the pentagram is safe or not
+    """
+    distinct_neighbors = get_distinct_neighbors(multigram, graph)
 
     for neighbor_pair in list(itertools.combinations(distinct_neighbors, 2)):
         if graph.has_edge(neighbor_pair[0], neighbor_pair[1]) or graph.has_edge(neighbor_pair[1], neighbor_pair[0]):
@@ -57,9 +71,13 @@ def check_safety_k_5(multigram, graph):
     x_2 = distinct_neighbors[1]
     x_3 = distinct_neighbors[2]
     x_4 = distinct_neighbors[3]
+    v_3 = multigram[2]
+    v_4 = multigram[3]
     v_5 = multigram[4]
     graph_without_multigram = graph.copy()
     graph_without_multigram.remove_nodes_from(multigram[0:4])
+
+    # No path of length at most 3 between x_2 and v_5, so length <= 3
     paths = list(nx.all_simple_paths(graph_without_multigram, x_2, v_5, 3))
 
     if len(paths) > 0:
@@ -72,17 +90,47 @@ def check_safety_k_5(multigram, graph):
         if len(path) != 3:
             return False
 
-    # TODO the rest of the safety check
-    assert False
+        completed_path = path.copy()
+        completed_path.append(v_4)
+        completed_path.insert(0, v_3)
+
+        subgraph = nx.induced_subgraph(graph, completed_path)
+        facial_cycles = nx.cycle_basis(subgraph)
+
+        if not len(facial_cycles) == 1:
+            return False
+
+        if not len(facial_cycles[0]) == 5:
+            return False
+
+    return True
 
 
 def check_safety_decagram(multigram, graph):
     """
-    TODO safety decagram
-    :param multigram:
-    :param graph:
+    Check the decagram for safety as according to the paper.
+    :param multigram: Decagram to check safety for
+    :param graph: Graph to do the safety checks in
+    :return Bool whether the decagram is safe or not
     """
-    assert False
+    distinct_neighbors = get_distinct_neighbors(multigram, graph)
+
+    x_1 = distinct_neighbors[0]
+    x_3 = distinct_neighbors[2]
+
+    if x_1 == x_3:
+        return False
+
+    if graph.has_edge(x_1, x_3):
+        return False
+
+    # No path of length at most 2 between x_1 and x_3, so length <= 2
+    paths = list(nx.all_simple_paths(graph, x_1, x_3, 2))
+
+    if len(paths) > 0:
+        return False
+
+    return True
 
 
 def check_if_k_4_is_octagram(multigram, graph):
@@ -150,7 +198,7 @@ def check_multigram_safety(multigram, graph):
             if check_if_k_5_is_decagram(multigram, graph):
                 return check_safety_decagram(multigram, graph), 'decagram'
 
-            return check_safety_k_5(multigram, graph), 'pentagram'
+            return check_safety_pentagram(multigram, graph), 'pentagram'
         case 6:
             return check_safety_k_4_6(multigram, graph), 'hexagram'
         case _:
