@@ -15,13 +15,14 @@ configurations = [
     # [0.3, 7, 3, None, None, None],
     # [0.5, 7, 3, None, None, None],
     # [0.7, 7, 3, None, None, None],
-    [0.05, 7, 3, None, None, None],
+    # [0.2, 7, 3, None, None, None],
     # [0.5, 7, 3, None, None],
-    # [0.7, None, None, None, None, True],
+    # [0.04, None, None, None, None, True],
+    [0.03, None, None, None, None, True],
 ]
 
 for config in configurations:
-    for n in [10, 20, 30, 40, 50, 75, 34, 67, 69]:
+    for n in [200, 500, 1000, 2000, 5000]:
         shuffle = True
         print(f"Generating graph with nodes {n}, p: {config[0]}, path: {config[1]}, cycle: {config[2]}, "
               f"planar: {config[3]}, diameter: {config[4]}, locally_connected: {config[5]}, shuffle: {shuffle}")

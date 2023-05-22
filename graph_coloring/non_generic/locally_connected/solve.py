@@ -230,6 +230,8 @@ def locally_connected_solve(graph: nx.Graph):
 
     graph.remove_nodes_from(low_degree_vertices)
 
+    assert len(list(nx.connected_components(graph))) == 1
+
     # Get the initial V_3 with an arbitrary triangle (in this case just the first vertex)
     V = get_triangle_from_neighbors(graph, list(graph.nodes)[0])
     H = nx.Graph()

@@ -118,6 +118,20 @@ class GraphGenerator:
             if not is_locally_connected:
                 self.make_neighbors_connected(graph, node)
 
+        ccs = list(nx.connected_components(graph))
+
+        for i in range(len(ccs) - 1):
+            cc1 = list(ccs[i])
+            cc2 = list(ccs[i+1])
+
+            node1 = cc1[0]
+            node2 = cc2[0]
+
+            graph.add_edge(node1, node2)
+
+            self.make_neighbors_connected(graph, node1)
+            self.make_neighbors_connected(graph, node2)
+
         draw_graph(graph, None)
         self.checker.sanity_check_graph(graph, locally_connected=locally_connected)
 
