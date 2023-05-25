@@ -1,4 +1,5 @@
 import networkx as nx
+import planarity
 from networkx import Graph
 
 from graph_coloring.exceptions import InvalidGraphException, InvalidColoringException
@@ -93,7 +94,7 @@ class GraphChecker:
 
     @staticmethod
     def graph_check_planar(graph):
-        return nx.is_planar(graph)
+        return planarity.is_planar(graph)
 
     @staticmethod
     def graph_check_diameter(graph, d):
@@ -265,6 +266,7 @@ class GraphChecker:
 
     def check_locally_connected(self, graph, nodes):
         for node in nodes:
+            print(f'Checking locally connectedness for node {node}')
             neighbors = list(graph.neighbors(node))
             induced_neighbors = nx.induced_subgraph(graph, neighbors)
 

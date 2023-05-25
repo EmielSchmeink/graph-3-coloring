@@ -227,7 +227,6 @@ def locally_connected_solve(graph: nx.Graph):
     """
     low_degree_vertices = get_vertices_of_degree_n(graph, 0, up_to=True)
     low_degree_coloring = {node: 'red' for node in low_degree_vertices}
-
     graph.remove_nodes_from(low_degree_vertices)
 
     assert len(list(nx.connected_components(graph))) == 1

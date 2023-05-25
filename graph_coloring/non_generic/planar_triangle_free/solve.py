@@ -20,6 +20,9 @@ def get_multigram(embedding, graph):
     if len(low_degree_vertices) > 0:
         return [low_degree_vertices[0]], 'monogram'
 
+    _, embedding = nx.check_planarity(graph)
+    embedding.check_structure()
+
     for first_vertex in embedding.nodes:
         # Greedily get the first multigram
         cw_neighbor = list(embedding.neighbors_cw_order(first_vertex))[0]
@@ -55,12 +58,10 @@ def planar_solve(graph: nx.Graph):
     while multigram_found:
         if len(list(temp_graph.nodes)) == 0:
             break
+
         multigram = get_multigram(temp_embedding, temp_graph)
         multigrams.append(multigram)
         temp_graph = multigram_reduction(multigram, temp_graph)
-
-        _, temp_embedding = nx.check_planarity(temp_graph)
-        temp_embedding.check_structure()
 
     color_dict = convert_multigrams_into_coloring(multigrams, graph)
 

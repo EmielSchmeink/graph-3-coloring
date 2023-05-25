@@ -32,7 +32,7 @@ class GraphGenerator:
 
     def erdos_renyi_with_checks(self, n, p,
                                 path_length=None, cycle_size=None, planar=None, diameter=None, locally_connected=None,
-                                shuffle=True, seed=None):
+                                shuffle=True, seed=None, batch_size=1):
         random.seed(seed)
 
         # All combinations of vertices that could become an edge
@@ -40,17 +40,15 @@ class GraphGenerator:
         g = nx.Graph()
 
         if shuffle:
-            splits = self.split_list(edges, 4)
-            split_to_shuffle = splits[0]
-            random.shuffle(split_to_shuffle)
-
-            edges = split_to_shuffle + splits[1] + splits[2] + splits[3]
+            random.shuffle(edges)
 
         # Add all n vertices to the graph without edges
         g.add_nodes_from(range(n))
 
         # Create a PyProg ProgressBar Object
         prog = pyprog.ProgressBar("Generation ", "OK!")
+
+        batch_edges = []
 
         for i, e in enumerate(edges):
             # Update status
@@ -61,18 +59,30 @@ class GraphGenerator:
             if random.random() >= p:
                 continue
 
+            batch_edges.append(e)
+
             # If it is a candidate, add it to the graph and do the required checks
             g.add_edge(*e)
 
-            # If the edge breaks a requirement, remove it and start with a new edge
-            if planar is not None and planar != self.checker.graph_check_planar(g):
-                g.remove_edge(e[0], e[1])
-                logging.info(f"Edge {e} was not okay")
+            if len(batch_edges) % batch_size != 0:
                 continue
 
-            if cycle_size is not None and self.checker.check_induced_cycle(g, e, cycle_size):
-                g.remove_edge(e[0], e[1])
+            # If the edge breaks a requirement, remove it and start with a new edge
+            if planar is not None and planar != self.checker.graph_check_planar(g):
+                for edge in batch_edges:
+                    g.remove_edge(edge[0], edge[1])
+
                 logging.info(f"Edge {e} was not okay")
+                batch_edges = []
+                continue
+
+            if cycle_size is not None:
+                for edge in batch_edges:
+                    if self.checker.check_induced_cycle(g, edge, cycle_size):
+                        g.remove_edge(edge[0], edge[1])
+
+                logging.info(f"Edge {e} was not okay")
+                batch_edges = []
                 continue
 
             if path_length is not None and self.checker.check_induced_path(g, e, path_length):
@@ -80,10 +90,23 @@ class GraphGenerator:
                 logging.info(f"Edge {e} was not okay")
                 continue
 
+            batch_edges = []
             logging.info(f"Edge {e} was okay")
 
         # Make the Progress Bar final
         prog.end()
+
+        if planar is not None and planar != self.checker.graph_check_planar(g):
+            for edge in batch_edges:
+                g.remove_edge(edge[0], edge[1])
+
+            logging.info(f"Edge {e} was not okay")
+
+        if cycle_size is not None and self.checker.check_induced_cycle(g, e, cycle_size):
+            for edge in batch_edges:
+                g.remove_edge(edge[0], edge[1])
+
+            logging.info(f"Edge {e} was not okay")
 
         # Sanity check graph
         draw_graph(g, None)
@@ -103,17 +126,18 @@ class GraphGenerator:
 
             graph.add_edge(cc_1[0], cc_2[0])
 
-    def locally_connected_generation(self, n, p, locally_connected=None, seed=None):
+    def locally_connected_generation(self, n, p, seed=None):
         random.seed(seed)
 
-        graph = nx.erdos_renyi_graph(n, p, seed)
-        nodes = list(graph.nodes)
-        is_locally_connected = self.checker.check_locally_connected(graph, nodes)
+        print('Generating erdos renyi graph')
+        graph = nx.fast_gnp_random_graph(n, p, seed)
+        print('Done generating erdos renyi graph')
 
-        if is_locally_connected:
-            return graph
+        nodes = list(graph.nodes)
 
         for node in nodes:
+            print(f'Connecting node {node}')
+
             is_locally_connected = self.checker.check_locally_connected(graph, [node])
             if not is_locally_connected:
                 self.make_neighbors_connected(graph, node)
@@ -133,7 +157,7 @@ class GraphGenerator:
             self.make_neighbors_connected(graph, node2)
 
         draw_graph(graph, None)
-        self.checker.sanity_check_graph(graph, locally_connected=locally_connected)
+        self.checker.sanity_check_graph(graph, locally_connected=True)
 
         return graph
 
@@ -252,12 +276,13 @@ class GraphGenerator:
                             level=logging.INFO)
 
         if locally_connected is not None:
-            graph = self.locally_connected_generation(nodes, p, locally_connected, seed)
+            graph = self.locally_connected_generation(nodes, p, seed)
         elif path_length is not None:
             graph = self.path_free_generation(nodes, p, path_length, cycle_size, shuffle, seed)
         else:
             graph = self.erdos_renyi_with_checks(nodes, p, path_length, cycle_size, planar, diameter,
                                                  locally_connected, shuffle, seed)
+            # graph = self.embedding_generation(nodes, p, seed)
 
         # Graph passed all checks, save it
         self.write_graph(graph, path)
