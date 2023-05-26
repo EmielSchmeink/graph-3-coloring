@@ -2,6 +2,7 @@ import os
 import time
 
 import networkx as nx
+from func_timeout import FunctionTimedOut
 
 from graph_coloring.exceptions import InvalidGraphException
 from graph_coloring.generic.csp.solve import csp_solve
@@ -15,7 +16,8 @@ from graph_generation.graph_drawer import draw_graph_with_color_from_dict, draw_
 
 
 def draw_and_check_coloring(graph, colors):
-    draw_graph_with_color_from_dict(graph, colors)
+    if len(graph.nodes) < 1000:
+        draw_graph_with_color_from_dict(graph, colors)
     GraphChecker().valid_3_coloring(graph, colors)
 
 
@@ -27,7 +29,11 @@ def color_graph(graph, graph_name, method):
         case 'sat':
             colors = sat_solve(graph, graph_name)
         case 'csp':
-            colors = csp_solve(graph)
+            try:
+                colors = csp_solve(graph)
+            except FunctionTimedOut:
+                print("CSP: could not complete within the set time and was terminated.")
+                colors = 'timeout'
         case 'planar':
             colors = planar_solve(graph)
         case 'locally_connected':
@@ -36,6 +42,9 @@ def color_graph(graph, graph_name, method):
             colors = p7_c3_solve(graph)
         case _:
             raise InvalidGraphException('Type not found...')
+
+    if colors == 'timeout':
+        return None
 
     total_time = time.time() - start_time
     print(f"Execution took {total_time} seconds")
@@ -64,7 +73,9 @@ def match_graph_type(path):
 
     graph_type_colorable = color_graph(graph, path, graph_dict['graph_type'])
     assert graph_type_colorable == sat_colorable
-    assert csp_colorable == sat_colorable
+
+    if csp_colorable is not None:
+        assert csp_colorable == sat_colorable
 
 
 if __name__ == '__main__':

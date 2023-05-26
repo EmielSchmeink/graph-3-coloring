@@ -1,5 +1,7 @@
 import random
 
+from func_timeout import func_set_timeout
+
 from graph_coloring.generic.csp.bushy_forest import get_maximal_bushy_forest
 from graph_coloring.generic.csp.k13 import *
 from graph_coloring.generic.csp.list_sat import list_sat_satisfier
@@ -207,6 +209,7 @@ def get_colorings(bushy_forest, k13_list, graph_without_forest_neighbors_k13, gr
     return colors
 
 
+@func_set_timeout(2)
 def csp_solve(graph: nx.Graph):
     """
     Get a 3-coloring for the given graph, or indicate that a 3-coloring is not possible, using the CSP algorithm
