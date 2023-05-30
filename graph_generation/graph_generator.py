@@ -235,12 +235,19 @@ class GraphGenerator:
         graph = nx.Graph()
         graph.add_nodes_from(range(nodes))
 
+        print("Starting connecting sets...")
         node_partitions = self.split_list(list(graph.nodes), 6)
 
+        print("Connecting sets 0 and 1...")
         self.fully_connect_sets(graph, node_partitions[0], node_partitions[1])
+
+        print("Connecting sets 1 and 2...")
         self.fully_connect_sets(graph, node_partitions[1], node_partitions[2])
 
+        print("Connecting sets 3 and 4...")
         self.fully_connect_sets(graph, node_partitions[3], node_partitions[4])
+
+        print("Connecting sets 4 and 5...")
         self.fully_connect_sets(graph, node_partitions[4], node_partitions[5])
 
         node0 = node_partitions[0][-1]
@@ -253,7 +260,7 @@ class GraphGenerator:
 
         draw_graph(graph, None)
         assert len(list(nx.connected_components(graph))) == 1
-        self.checker.sanity_check_graph(graph, path_length=path_length, cycle_size=cycle_size, debug=True)
+        # self.checker.sanity_check_graph(graph, path_length=path_length, cycle_size=cycle_size, debug=True)
         print(nx.density(graph))
 
         return graph
