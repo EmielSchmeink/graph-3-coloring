@@ -7,7 +7,6 @@ from graph_coloring.generic.csp.k13 import *
 from graph_coloring.generic.csp.list_sat import list_sat_satisfier
 from graph_coloring.misc import color_low_degree_vertices
 from graph_generation.graph_checker import GraphChecker
-from graph_generation.graph_drawer import draw_graph_with_color_from_dict
 
 
 def find_vertices_in_cycles(graph):
@@ -110,7 +109,7 @@ def recurrence_coloring(L, children_dict, color_dict, remaining_graph, vertices_
         subdict = {n: color_dict[n] for n in L_complete}
 
         # TODO remove this
-        draw_graph_with_color_from_dict(tree_subgraph, subdict)
+        # draw_graph_with_color_from_dict(tree_subgraph, subdict)
 
         GraphChecker().valid_3_coloring(tree_subgraph, subdict)
 
@@ -130,7 +129,7 @@ def recurrence_coloring(L, children_dict, color_dict, remaining_graph, vertices_
         return color_dict
     else:
         # TODO remove this
-        print(L)
+        # print(L)
         x = L.pop(0)
 
         allowed_colors_for_x = color_dict[x]
@@ -209,7 +208,7 @@ def get_colorings(bushy_forest, k13_list, graph_without_forest_neighbors_k13, gr
     return colors
 
 
-@func_set_timeout(2)
+@func_set_timeout(300)
 def csp_solve(graph: nx.Graph):
     """
     Get a 3-coloring for the given graph, or indicate that a 3-coloring is not possible, using the CSP algorithm
