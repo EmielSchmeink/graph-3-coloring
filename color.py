@@ -24,6 +24,7 @@ def draw_and_check_coloring(graph, colors):
 def color_graph(graph, graph_name, method):
     original_graph = graph.copy()
 
+    print(f"Execution using {method} starting")
     start_time = time.time()
     match method:
         case 'sat':
@@ -32,7 +33,10 @@ def color_graph(graph, graph_name, method):
             try:
                 colors = csp_solve(graph)
             except FunctionTimedOut:
-                print("CSP: could not complete within the set time and was terminated.")
+                print("CSP: could not complete within the set time and was terminated...")
+                colors = 'timeout'
+            except RecursionError:
+                print("CSP: maximum recursion depth reached, exiting...")
                 colors = 'timeout'
         case 'planar':
             colors = planar_solve(graph)
