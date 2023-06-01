@@ -1,3 +1,4 @@
+import os
 import time
 
 import networkx as nx
@@ -83,6 +84,6 @@ def match_graph_type(path):
 
 
 if __name__ == '__main__':
-    for graph_path in ['graph-nodes-500-p-0.1-path-None-cycle-3-planar-True-diameter-None-locally_connected-None-shuffle-True-26-05-2023-13:09:28.txt']:
+    for graph_path in os.listdir('graphs'):
         print(f"Processing graph {graph_path}")
         match_graph_type(graph_path)
