@@ -51,6 +51,7 @@ def color_graph(graph, graph_name, method):
 
     total_time = time.time() - start_time
     print(f"Execution took {total_time} seconds")
+    print()
 
     write_results(graph_name, method, total_time)
 
