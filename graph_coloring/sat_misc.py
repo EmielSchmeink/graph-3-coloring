@@ -46,19 +46,14 @@ def create_model(graph):
 
 def evaluate_model(model):
     """
-    Get the color dict from the given z3 model and for the given vertices, using the provided functions representing
-    red, green, and blue respectively.
+    Get the color dict from the given z3 model where z3 has assigned each vertex a color.
     :param model: z3 model containing the coloring
-    :param vertices: The vertices to be colored
-    :param R: Function representing red
-    :param G: Function representing green
-    :param B: Function representing blue
     :return: Dict of colors for all vertices
     """
     colors_dict = {}
 
     tqdm_vertices = tqdm(model.decls())
-    tqdm_vertices.set_description(desc="Evaluating sat variables", refresh=True)
+    tqdm_vertices.set_description(desc="Evaluating sat variables (3x the nodes)", refresh=True)
 
     for t in tqdm_vertices:
         if is_true(model[t]):
