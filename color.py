@@ -65,7 +65,7 @@ def match_graph_type(path):
     graph_dict = convert_path_to_dict(path)
     graph = nx.read_adjlist(f"graphs/{path}")
 
-    print(f"Coloring graph {path}")
+    print(f"Drawing graph {path}")
     draw_graph(graph, None)
     print(f"Finished drawing {path}")
 
@@ -84,4 +84,5 @@ def match_graph_type(path):
 
 if __name__ == '__main__':
     for graph_path in os.listdir('graphs'):
+        print(f"Processing graph {graph_path}")
         match_graph_type(graph_path)

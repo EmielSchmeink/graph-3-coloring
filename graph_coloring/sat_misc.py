@@ -1,3 +1,6 @@
+from tqdm import tqdm
+
+
 def evaluate_model(model, vertices, R, G, B):
     """
     Get the color dict from the given z3 model and for the given vertices, using the provided functions representing
@@ -11,7 +14,10 @@ def evaluate_model(model, vertices, R, G, B):
     """
     colors_dict = {}
 
-    for vertex in vertices:
+    tqdm_vertices = tqdm(vertices)
+    tqdm_vertices.set_description(desc="Evaluating vertices", refresh=True)
+
+    for vertex in tqdm_vertices:
         i = int(vertex)
         is_red = model.evaluate(R(i))
         is_green = model.evaluate(G(i))

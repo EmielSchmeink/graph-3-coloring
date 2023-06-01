@@ -208,7 +208,7 @@ def get_colorings(bushy_forest, k13_list, graph_without_forest_neighbors_k13, gr
     return colors
 
 
-@func_set_timeout(300)
+@func_set_timeout(5)
 def csp_solve(graph: nx.Graph):
     """
     Get a 3-coloring for the given graph, or indicate that a 3-coloring is not possible, using the CSP algorithm

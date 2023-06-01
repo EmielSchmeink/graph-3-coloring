@@ -80,7 +80,7 @@ def color_low_degree_vertices(graph, low_degree_vertices, colors_dict):
 def convert_path_to_dict(graph_path):
     path_parts = graph_path.split('-')
 
-    if path_parts[6] == 'True':
+    if path_parts[6] != 'None':
         graph_type = 'p7_c3'
     elif path_parts[10] == 'True':
         graph_type = 'planar'

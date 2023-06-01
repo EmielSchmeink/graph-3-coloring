@@ -1,6 +1,6 @@
 import time
 
-import pyprog
+from tqdm import tqdm
 from z3.z3 import *
 
 from graph_coloring.misc import write_results
@@ -24,41 +24,23 @@ def sat_solve(graph, graph_name):
     G = Function('G', IntSort(), BoolSort())
     B = Function('B', IntSort(), BoolSort())
 
-    # Create a PyProg ProgressBar Object
-    prog_node = pyprog.ProgressBar("Creating node clauses ", "OK!")
-    node_clauses = []
+    tqdm_nodes = tqdm(graph.nodes)
+    tqdm_nodes.set_description(desc="Creating node clauses", refresh=True)
 
-    for i, node in enumerate(graph.nodes):
-        # Update status
-        prog_node.set_stat(i * 100 / len(graph.nodes))
-        prog_node.update()
+    node_clauses = [And(
+        Or(R(int(i)), G(int(i)), B(int(i))),
+        Or(Not(R(int(i))), Not(G(int(i)))),
+        Or(Not(R(int(i))), Not(B(int(i)))),
+        Or(Not(G(int(i))), Not(B(int(i))))
+    ) for i in tqdm_nodes]
 
-        node_clauses.append(And(
-            Or(R(int(node)), G(int(node)), B(int(node))),
-            Or(Not(R(int(node))), Not(G(int(node)))),
-            Or(Not(R(int(node))), Not(B(int(node)))),
-            Or(Not(G(int(node))), Not(B(int(node))))
-        ))
-
-    # Make the Progress Bar final
-    prog_node.end()
-
-    prog_edge = pyprog.ProgressBar("Creating edge clauses ", "OK!")
-    edge_clauses = []
-
-    for i, (e1, e2) in enumerate(edges):
-        # Update status
-        prog_edge.set_stat(i * 100 / len(edges))
-        prog_edge.update()
-
-        edge_clauses.append(And(
-            Or(Not(R(int(e1))), Not(R(int(e2)))),
-            Or(Not(G(int(e1))), Not(G(int(e2)))),
-            Or(Not(B(int(e1))), Not(B(int(e2))))
-        ))
-
-    # Make the Progress Bar final
-    prog_edge.end()
+    tqdm_edges = tqdm(edges)
+    tqdm_edges.set_description(desc="Creating edge clauses", refresh=True)
+    edge_clauses = [And(
+                Or(Not(R(int(i))), Not(R(int(j)))),
+                Or(Not(G(int(i))), Not(G(int(j)))),
+                Or(Not(B(int(i))), Not(B(int(j))))
+            ) for (i, j) in tqdm_edges]
 
     s.add(And(
         And(node_clauses),
@@ -71,6 +53,8 @@ def sat_solve(graph, graph_name):
     write_results(graph_name, 'sat_formula', total_time)
 
     print('SAT: Solving...')
+    start_time = time.time()
+
     is_sat = s.check()
 
     if is_sat == sat:
@@ -78,6 +62,10 @@ def sat_solve(graph, graph_name):
     elif is_sat == unsat:
         print('SAT: No 3-coloring possible!')
         return None
+
+    total_time = time.time() - start_time
+    print(f"Solving took {total_time} seconds")
+    write_results(graph_name, 'sat_solving', total_time)
 
     model = s.model()
     return evaluate_model(model, graph.nodes, R, G, B)

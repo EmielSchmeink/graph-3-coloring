@@ -5,7 +5,7 @@ import random
 from datetime import datetime
 
 import networkx as nx
-import pyprog as pyprog
+from tqdm import tqdm
 
 from graph_coloring.misc import intersection
 from graph_generation.graph_checker import GraphChecker
@@ -45,16 +45,12 @@ class GraphGenerator:
         # Add all n vertices to the graph without edges
         g.add_nodes_from(range(n))
 
-        # Create a PyProg ProgressBar Object
-        prog = pyprog.ProgressBar("Generation ", "OK!")
+        tqdm_edges = tqdm(edges)
+        tqdm_edges.set_description(desc="Checking edges")
 
         batch_edges = []
 
-        for i, e in enumerate(edges):
-            # Update status
-            prog.set_stat(i * 100 / len(edges))
-            prog.update()
-
+        for e in tqdm_edges:
             # For each edge randomly make it a candidate
             if random.random() >= p:
                 continue
@@ -92,9 +88,6 @@ class GraphGenerator:
 
             batch_edges = []
             logging.info(f"Edge {e} was okay")
-
-        # Make the Progress Bar final
-        prog.end()
 
         if planar is not None and planar != self.checker.graph_check_planar(g):
             for edge in batch_edges:
