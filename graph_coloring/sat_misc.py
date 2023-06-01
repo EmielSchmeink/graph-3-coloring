@@ -58,7 +58,7 @@ def evaluate_model(model):
     colors_dict = {}
 
     tqdm_vertices = tqdm(model.decls())
-    tqdm_vertices.set_description(desc="Evaluating vertices", refresh=True)
+    tqdm_vertices.set_description(desc="Evaluating sat variables", refresh=True)
 
     for t in tqdm_vertices:
         if is_true(model[t]):
