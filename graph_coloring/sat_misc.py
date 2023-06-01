@@ -19,9 +19,7 @@ def evaluate_model(model, vertices, R, G, B):
 
     for vertex in tqdm_vertices:
         i = int(vertex)
-        is_red = model.evaluate(R(i))
-        is_green = model.evaluate(G(i))
-        is_blue = model.evaluate(B(i))
+        m = model
 
         if is_red:
             colors_dict[vertex] = 'red'

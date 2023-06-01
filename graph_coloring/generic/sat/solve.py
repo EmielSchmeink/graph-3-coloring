@@ -28,7 +28,7 @@ def sat_solve(graph, graph_name):
     tqdm_nodes.set_description(desc="Creating node clauses", refresh=True)
 
     node_clauses = [And(
-        Or(R(int(i)), G(int(i)), B(int(i))),
+        Or(Bool(f"R_{i}"), G(int(i)), B(int(i))),
         Or(Not(R(int(i))), Not(G(int(i)))),
         Or(Not(R(int(i))), Not(B(int(i)))),
         Or(Not(G(int(i))), Not(B(int(i))))
