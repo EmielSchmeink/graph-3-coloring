@@ -11,7 +11,7 @@ def sat_solve(graph, graph_name):
     Get a 3-coloring for the given graph, or indicate that a 3-coloring is not possible, using a reduction to SAT, and
     solving using Z3.
     :param graph: The graph to be colored
-    :param graph_name:
+    :param graph_name: The path/name of the graph to be used to write results
     :return: Dict of colors for all nodes, or None
     """
     print('SAT: Making formula...')
