@@ -104,7 +104,7 @@ def write_results(graph_name, method, time):
 
     if not os.path.isfile(path):
         df = pd.DataFrame(columns=["nodes", "p", "graph_name", "method", "execution_time"])
-        df.to_csv(path)
+        df.to_csv(path, index=False)
 
     graph_dict = convert_path_to_dict(graph_name)
 
