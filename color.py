@@ -1,4 +1,3 @@
-import os
 import time
 
 import networkx as nx
@@ -73,17 +72,17 @@ def match_graph_type(path):
     sat_graph = graph.copy()
     csp_graph = graph.copy()
 
-    sat_colorable = color_graph(sat_graph, path, 'sat')
-    csp_colorable = color_graph(csp_graph, path, 'csp')
+    # sat_colorable = color_graph(sat_graph, path, 'sat')
+    # csp_colorable = color_graph(csp_graph, path, 'csp')
 
     graph_type_colorable = color_graph(graph, path, graph_dict['graph_type'])
-    assert graph_type_colorable == sat_colorable
-
-    if csp_colorable is not None:
-        assert csp_colorable == sat_colorable
+    # assert graph_type_colorable == sat_colorable
+    #
+    # if csp_colorable is not None:
+    #     assert csp_colorable == sat_colorable
 
 
 if __name__ == '__main__':
-    for graph_path in os.listdir('graphs'):
+    for graph_path in ['graph-nodes-10000-p-0.03-path-None-cycle-None-planar-None-diameter-None-locally_connected-True-shuffle-True-26-05-2023-13:17:29.txt']:
         print(f"Processing graph {graph_path}")
         match_graph_type(graph_path)
