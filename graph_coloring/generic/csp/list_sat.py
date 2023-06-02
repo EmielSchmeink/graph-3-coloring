@@ -1,4 +1,4 @@
-from z3.z3 import *
+from pysmt.shortcuts import Symbol, And, Not
 
 from graph_coloring.sat_misc import evaluate_model, create_model
 
@@ -19,7 +19,9 @@ def illegal_color_clauses(vertex, colors):
     illegal_colors = [color for color in ['red', 'green', 'blue'] if color not in colors]
     illegal_clause = []
 
-    r, g, b = Bools(f"R_{i} G_{i} B_{i}")
+    r = Symbol(f"R_{i}")
+    g = Symbol(f"G_{i}")
+    b = Symbol(f"B_{i}")
 
     for illegal_color in illegal_colors:
         if illegal_color == 'red':
@@ -43,17 +45,16 @@ def list_sat_satisfier(graph, allowed_vertex_color_dict):
 
     for vertex, colors in allowed_vertex_color_dict.items():
         clause = illegal_color_clauses(vertex, colors)
-        s.add(clause)
+        s.add_assertion(clause)
 
     print('List SAT: Solving...')
-    is_sat = s.check()
+    s_is_sat = s.solve()
 
-    if is_sat == sat:
+    if s_is_sat:
+        model = s.get_model()
         print('List SAT: Remaining SAT 3-coloring possible, evaluating model...')
-    elif is_sat == unsat:
+    else:
         print('List SAT: No 3-coloring possible for this bushy tree coloring!')
         return None
-
-    model = s.model()
 
     return evaluate_model(model)

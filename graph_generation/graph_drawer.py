@@ -30,7 +30,7 @@ def draw_planar_directed(graph):
 
 def draw_graph(graph, node_colors, edge_colors=None):
     # At this size, you don't get any info and it takes long
-    if len(graph.nodes) > 1000:
+    if len(graph.nodes) > 999:
         return
 
     if nx.is_planar(graph):

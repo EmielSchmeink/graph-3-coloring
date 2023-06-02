@@ -1,7 +1,5 @@
 import time
 
-from z3.z3 import *
-
 from graph_coloring.misc import write_results
 from graph_coloring.sat_misc import evaluate_model, create_model
 
@@ -26,11 +24,12 @@ def sat_solve(graph, graph_name):
     print('SAT: Solving...')
     start_time = time.time()
 
-    is_sat = s.check()
+    s_is_sat = s.solve()
 
-    if is_sat == sat:
+    if s_is_sat:
+        model = s.get_model()
         print('SAT: 3-coloring possible, evaluating model...')
-    elif is_sat == unsat:
+    else:
         print('SAT: No 3-coloring possible!')
         return None
 
@@ -38,5 +37,4 @@ def sat_solve(graph, graph_name):
     print(f"Solving took {total_time} seconds")
     write_results(graph_name, 'sat_solving', total_time)
 
-    model = s.model()
     return evaluate_model(model)
