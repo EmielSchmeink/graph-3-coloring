@@ -1,6 +1,8 @@
 import itertools
+import time
 
 import networkx as nx
+from tqdm import tqdm
 
 from graph_coloring.exceptions import InvalidGraphException
 from graph_coloring.misc import intersection, get_vertices_of_degree_n
@@ -251,17 +253,34 @@ def locally_connected_solve(graph: nx.Graph):
     U_prime = get_U_prime(H, graph, w)
     H_prime = nx.subgraph(H, W_prime + U_prime).copy()
 
+    tqdm_nodes = tqdm(range(3, len(graph.nodes)))
+    tqdm_nodes.set_description(desc="Creating 3-clique ordering", refresh=True)
+
     # Incrementally create a 3-clique ordering for the graph
-    for i in range(3, len(graph.nodes)):
+    for _ in tqdm_nodes:
         # Save the previous iteration for later use
         V_i_1 = V.copy()
-        W_i_1 = W.copy()
+        # W_i_1 = W.copy()
         U_i_1 = U.copy()
         w_i_1 = w
+
+        print('Copying part 1...')
+        start_time = time.time()
+
         W_prime_i_1 = W_prime.copy()
         U_prime_i_1 = U_prime.copy()
-        H_i_1 = H.copy()
-        H_prime_i_1 = H_prime.copy()
+
+        total_time = time.time() - start_time
+        print(f"Copying part 1 took {total_time} seconds")
+
+        print('Copying part 2...')
+        start_time = time.time()
+
+        H_i_1 = H
+        H_prime_i_1 = H_prime
+
+        total_time = time.time() - start_time
+        print(f"Copying part 2 took {total_time} seconds")
 
         # Creating V_i from V_i-1 and v_i
         v_i = get_v_i(H_prime_i_1, U_prime_i_1)
