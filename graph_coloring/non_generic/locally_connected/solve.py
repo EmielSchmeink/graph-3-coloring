@@ -1,5 +1,4 @@
 import itertools
-import time
 
 import networkx as nx
 from tqdm import tqdm
@@ -82,7 +81,7 @@ def get_v_i(H_prime, U_prime):
     raise InvalidGraphException("I think this should not happen? Investigate")
 
 
-def update_H(graph, v_i, V_i_1, H, W, U, H_i_1, U_i_1):
+def update_H(graph, v_i, V_i_1, H, W, U, U_i_1):
     """
     Update the graph H according to the following rules:
 
@@ -93,12 +92,13 @@ def update_H(graph, v_i, V_i_1, H, W, U, H_i_1, U_i_1):
     If v_i has degree 0 in H_i after all these changes, delete v_i from H_i, otherwise move v_i from
     U_i to W_i.
     """
-    for x in graph.neighbors(v_i):
+    neighbor_set = set(graph.neighbors(v_i))
+    for x in neighbor_set:
         if x in V_i_1:
-            H.remove_edge(x, v_i)
-
-            if list(H_i_1.neighbors(x)) == [v_i]:
+            if list(H.neighbors(x)) == [v_i]:
                 W.remove(x)
+
+            H.remove_edge(x, v_i)
         else:
             H.add_edge(x, v_i)
 
@@ -256,40 +256,23 @@ def locally_connected_solve(graph: nx.Graph):
     tqdm_nodes = tqdm(range(3, len(graph.nodes)))
     tqdm_nodes.set_description(desc="Creating 3-clique ordering", refresh=True)
 
+    V = set(V)
+
     # Incrementally create a 3-clique ordering for the graph
     for _ in tqdm_nodes:
         # Save the previous iteration for later use
-        V_i_1 = V.copy()
-        # W_i_1 = W.copy()
         U_i_1 = U.copy()
         w_i_1 = w
-
-        print('Copying part 1...')
-        start_time = time.time()
-
         W_prime_i_1 = W_prime.copy()
         U_prime_i_1 = U_prime.copy()
 
-        total_time = time.time() - start_time
-        print(f"Copying part 1 took {total_time} seconds")
-
-        print('Copying part 2...')
-        start_time = time.time()
-
-        H_i_1 = H
-        H_prime_i_1 = H_prime
-
-        total_time = time.time() - start_time
-        print(f"Copying part 2 took {total_time} seconds")
-
-        # Creating V_i from V_i-1 and v_i
-        v_i = get_v_i(H_prime_i_1, U_prime_i_1)
-        V.append(v_i)
+        # Get new v_i and update H accordingly
+        v_i = get_v_i(H_prime, U_prime)
+        update_H(graph, v_i, V, H, W, U, U_i_1)
+        V.add(v_i)
 
         if len(V) == len(graph.nodes):
             break
-
-        update_H(graph, v_i, V_i_1, H, W, U, H_i_1, U_i_1)
 
         if w_i_1 in W:
             w = w_i_1
@@ -315,7 +298,7 @@ def locally_connected_solve(graph: nx.Graph):
                     H_prime.add_nodes_from([u], bipartite='U')
                     H_prime.add_edge(u_neighbor, u)
 
-    color_dict = color_using_ordering(graph, V)
+    color_dict = color_using_ordering(graph, list(V))
 
     if color_dict is None:
         print('Locally Connected: No 3-coloring possible!')
