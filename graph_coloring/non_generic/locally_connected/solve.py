@@ -81,29 +81,30 @@ def get_v_i(H_prime, U_prime):
     raise InvalidGraphException("I think this should not happen? Investigate")
 
 
-def update_H(graph, v_i, V_i_1, H, W, U, U_i_1):
+def update_H(graph, v_i, V_i_1, H, W, U):
     """
     Update the graph H according to the following rules:
 
     For each x ∈ N(v_i):
+    • If x /∈ Vi−1, add (x, v_i) to H_i; furthermore if x /∈ U_{i−1}, add x to U_i.
     • If x ∈ V_{i-1} (i.e., x ∈ W_{i−1}, delete edge (x, v_i) from H_i; furthermore if v_i is the only
     neighbor of x in H_{i−1}, delete x from W_i.
-    • If x /∈ Vi−1, add (x, v_i) to H_i; furthermore if x /∈ U_{i−1}, add x to U_i.
     If v_i has degree 0 in H_i after all these changes, delete v_i from H_i, otherwise move v_i from
     U_i to W_i.
     """
     neighbor_set = set(graph.neighbors(v_i))
     for x in neighbor_set:
-        if x in V_i_1:
+        if x not in V_i_1:
+            H.add_edge(x, v_i)
+
+            # U_i-i and U_i are sets, so only unique elements can exist
+            # If it wasn't there already we can add it regardless
+            U.add(x)
+        else:
             if list(H.neighbors(x)) == [v_i]:
                 W.remove(x)
 
             H.remove_edge(x, v_i)
-        else:
-            H.add_edge(x, v_i)
-
-            if x not in U_i_1:
-                U.append(x)
 
     if H.degree[v_i] == 0:
         H.remove_node(v_i)
@@ -257,18 +258,18 @@ def locally_connected_solve(graph: nx.Graph):
     tqdm_nodes.set_description(desc="Creating 3-clique ordering", refresh=True)
 
     V = set(V)
+    U = set(U)
 
     # Incrementally create a 3-clique ordering for the graph
     for _ in tqdm_nodes:
         # Save the previous iteration for later use
-        U_i_1 = U.copy()
         w_i_1 = w
         W_prime_i_1 = W_prime.copy()
         U_prime_i_1 = U_prime.copy()
 
         # Get new v_i and update H accordingly
         v_i = get_v_i(H_prime, U_prime)
-        update_H(graph, v_i, V, H, W, U, U_i_1)
+        update_H(graph, v_i, V, H, W, U)
         V.add(v_i)
 
         if len(V) == len(graph.nodes):
