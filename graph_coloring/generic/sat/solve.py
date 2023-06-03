@@ -28,15 +28,15 @@ def sat_solve(graph, graph_name):
 
     is_sat = s.check()
 
+    total_time = time.time() - start_time
+    print(f"Solving took {total_time} seconds")
+    write_results(graph_name, 'sat_solving', total_time)
+
     if is_sat == sat:
         print('SAT: 3-coloring possible, evaluating model...')
     elif is_sat == unsat:
         print('SAT: No 3-coloring possible!')
         return None
-
-    total_time = time.time() - start_time
-    print(f"Solving took {total_time} seconds")
-    write_results(graph_name, 'sat_solving', total_time)
 
     model = s.model()
     return evaluate_model(model)

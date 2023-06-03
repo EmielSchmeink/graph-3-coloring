@@ -5,18 +5,18 @@ from graph_coloring.misc import intersection
 from graph_generation.graph_checker import GraphChecker
 
 
-def find_induced_cycle(graph, c, checker):
+def find_induced_cycle(graph, c):
     """
     Find and return an induced cycle of given size in the given graph.
     :param graph: Graph to find an induced cycle in
     :param c: Size of the induced cycle
-    :param checker: Checker instance to find an induced cycle
     :return: An induced cycle if it exists
     """
-    for edge in graph.edges:
-        cycle = checker.check_induced_cycle_using_path(graph, edge, c)
-        if len(cycle) != 0:
-            return cycle
+    induced_cycles = nx.chordless_cycles(graph, c)
+    while induced_cycle := next(induced_cycles):
+        if len(induced_cycle) == c:
+            print(induced_cycle)
+            return induced_cycle
 
     return None
 
@@ -327,12 +327,15 @@ def p7_c3_solve(graph: nx.Graph):
         return color_bipartite(graph)
 
     checker = GraphChecker()
+
+    print("P7C3: Finding cycle...")
     c5 = find_induced_cycle(graph, 5, checker)
 
     if c5 is None:
         # TODO handle this case where we must have a C7
         assert False
 
+    print("P7C3: Getting T and D...")
     T = get_T_from_graph(graph, c5)
     D = get_D_from_graph(graph, c5)
     S = []
@@ -345,13 +348,16 @@ def p7_c3_solve(graph: nx.Graph):
     # Make sure we only get the unique vertices
     S = list(set(S))
 
+    print("P7C3: Initial coloring...")
     color_dict = init_color_dict(graph, c5, T, D)
 
+    print("P7C3: Splitting ccs...")
     graph_without_s = graph.copy()
     graph_without_s.remove_nodes_from(S)
     ccs_graph_without_s = list(nx.connected_components(graph_without_s))
     W, ccs_without_s_without_w = split_w_and_rest(ccs_graph_without_s)
 
+    print("P7C3: Hanlding ccs...")
     handle_ccs(graph, W, T, D, S, ccs_without_s_without_w, color_dict)
 
     # Leftover W
