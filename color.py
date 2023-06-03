@@ -1,3 +1,5 @@
+import os
+import sys
 import time
 
 import networkx as nx
@@ -21,6 +23,7 @@ def draw_and_check_coloring(graph, colors):
 
 
 def color_graph(graph, graph_name, method):
+    print(f"Copying graph for method {method}")
     original_graph = graph.copy()
 
     print(f"Execution using {method} starting")
@@ -32,10 +35,10 @@ def color_graph(graph, graph_name, method):
             try:
                 colors = csp_solve(graph)
             except FunctionTimedOut:
-                print("CSP: could not complete within the set time and was terminated...")
+                print("CSP: could not complete within the set time and was terminated...\n")
                 colors = 'timeout'
             except RecursionError:
-                print("CSP: maximum recursion depth reached, exiting...")
+                print("CSP: maximum recursion depth reached, exiting...\n")
                 colors = 'timeout'
         case 'planar':
             colors = planar_solve(graph)
@@ -61,8 +64,13 @@ def color_graph(graph, graph_name, method):
     return False
 
 
-def match_graph_type(path):
+def match_graph_type(path, graph_type):
     graph_dict = convert_path_to_dict(path)
+
+    if graph_dict['graph_type'] != graph_type:
+        print(f'Not {graph_type}, skipping...\n')
+        return
+
     graph = nx.read_adjlist(f"graphs/{path}")
 
     print(f"Drawing graph {path}")
@@ -80,6 +88,8 @@ def match_graph_type(path):
 
 
 if __name__ == '__main__':
-    for graph_path in ['graph-nodes-30000-p-0.03-path-None-cycle-None-planar-None-diameter-None-locally_connected-True-shuffle-True-26-05-2023-17:04:26.txt']:
+    graph_type = sys.argv[1]
+
+    for graph_path in os.listdir('graphs'):
         print(f"Processing graph {graph_path}")
-        match_graph_type(graph_path)
+        match_graph_type(graph_path, graph_type)
