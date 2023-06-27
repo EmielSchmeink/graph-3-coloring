@@ -1,5 +1,9 @@
 from dataclasses import dataclass
 
+from tqdm import tqdm
+
+from graph_coloring.misc import remove_without_copy, add_nodes_with_edges
+
 
 @dataclass
 class BushyTree:
@@ -122,13 +126,19 @@ def get_maximal_bushy_forest(graph):
     """
     forest = []
 
-    for v in graph:
-        graph_without_forest = graph.copy()
+    tqdm_nodes = tqdm(list(graph.nodes()))
+    tqdm_nodes.set_description(desc="Looping over nodes for forest", refresh=True)
+    graph_without_forest = graph
+
+    for v in tqdm_nodes:
+        removed_edges = []
 
         for tree in forest:
-            graph_without_forest.remove_nodes_from(tree.get_all_nodes())
+            graph_without_forest, part_removed_edges = remove_without_copy(graph_without_forest, tree.get_all_nodes())
+            removed_edges.extend(part_removed_edges)
 
         if not graph_without_forest.has_node(v):
+            add_nodes_with_edges(graph_without_forest, removed_edges)
             continue
 
         all_nodes = []
@@ -172,5 +182,7 @@ def get_maximal_bushy_forest(graph):
 
                     bushy_tree.leaves.extend(w_neighbors_not_in_forest)
                     vertices_to_be_processed.extend(w_neighbors_not_in_forest)
+
+        add_nodes_with_edges(graph_without_forest, removed_edges)
 
     return forest

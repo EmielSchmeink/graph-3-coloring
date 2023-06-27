@@ -80,7 +80,7 @@ def color_low_degree_vertices(graph, low_degree_vertices, colors_dict):
 def convert_path_to_dict(graph_path):
     path_parts = graph_path.split('-')
 
-    if path_parts[6] == 'True':
+    if path_parts[6] != 'None':
         graph_type = 'p7_c3'
     elif path_parts[10] == 'True':
         graph_type = 'planar'
@@ -96,14 +96,17 @@ def convert_path_to_dict(graph_path):
     }
 
 
-def write_results(graph_name, method, time):
-    path = f"./results/result.csv"
-
+def write_results(graph_name, method, time, path="./results/result.csv", dsatur=False):
     if not os.path.exists("results/"):
         os.makedirs("results/")
 
     if not os.path.isfile(path):
-        df = pd.DataFrame(columns=["nodes", "p", "graph_name", "method", "execution_time"])
+        columns=["nodes", "p", "graph_name", "method", "execution_time", 'graph_path']
+
+        if type(dsatur) is int:
+            columns.append('colors')
+
+        df = pd.DataFrame(columns=columns)
         df.to_csv(path, index=False)
 
     graph_dict = convert_path_to_dict(graph_name)
@@ -114,10 +117,40 @@ def write_results(graph_name, method, time):
         'graph_type': [graph_dict['graph_type']],
         'method': [method],
         'execution_time': [time],
+        'graph_path': graph_name,
     }
+
+    if type(dsatur) is int:
+        data['colors'] = dsatur
 
     # Make data frame of above data
     df = pd.DataFrame(data)
 
     # append data frame to CSV file
     df.to_csv(path, mode='a', index=False, header=False)
+
+def remove_without_copy(graph, remove_list):
+    """
+    Remove nodes from a graph and saving the edges that were removed.
+    :param graph: Graph to remove nodes from
+    :param remove_list: List of nodes to be removed
+    :return: Graph without the given nodes, and the list of edges that were removed
+    """
+    removed_edges = []
+
+    for node in remove_list:
+        for neighbor in graph.neighbors(node):
+            removed_edges.append((node, neighbor))
+
+    graph.remove_nodes_from(remove_list)
+
+    return graph, removed_edges
+
+
+def add_nodes_with_edges(graph, edges):
+    """
+    Add nodes via missing edges.
+    :param graph: Graph to re-add nodes to
+    :param edges: The edges that were in the graph before the nodes were removed
+    """
+    graph.add_edges_from(edges)

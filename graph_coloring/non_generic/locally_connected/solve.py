@@ -1,6 +1,7 @@
 import itertools
 
 import networkx as nx
+from tqdm import tqdm
 
 from graph_coloring.exceptions import InvalidGraphException
 from graph_coloring.misc import intersection, get_vertices_of_degree_n
@@ -80,28 +81,30 @@ def get_v_i(H_prime, U_prime):
     raise InvalidGraphException("I think this should not happen? Investigate")
 
 
-def update_H(graph, v_i, V_i_1, H, W, U, H_i_1, U_i_1):
+def update_H(graph, v_i, V_i_1, H, W, U):
     """
     Update the graph H according to the following rules:
 
     For each x ∈ N(v_i):
+    • If x /∈ Vi−1, add (x, v_i) to H_i; furthermore if x /∈ U_{i−1}, add x to U_i.
     • If x ∈ V_{i-1} (i.e., x ∈ W_{i−1}, delete edge (x, v_i) from H_i; furthermore if v_i is the only
     neighbor of x in H_{i−1}, delete x from W_i.
-    • If x /∈ Vi−1, add (x, v_i) to H_i; furthermore if x /∈ U_{i−1}, add x to U_i.
     If v_i has degree 0 in H_i after all these changes, delete v_i from H_i, otherwise move v_i from
     U_i to W_i.
     """
-    for x in graph.neighbors(v_i):
-        if x in V_i_1:
-            H.remove_edge(x, v_i)
-
-            if list(H_i_1.neighbors(x)) == [v_i]:
-                W.remove(x)
-        else:
+    neighbor_set = set(graph.neighbors(v_i))
+    for x in neighbor_set:
+        if x not in V_i_1:
             H.add_edge(x, v_i)
 
-            if x not in U_i_1:
-                U.append(x)
+            # U_i-i and U_i are sets, so only unique elements can exist
+            # If it wasn't there already we can add it regardless
+            U.add(x)
+        else:
+            if list(H.neighbors(x)) == [v_i]:
+                W.remove(x)
+
+            H.remove_edge(x, v_i)
 
     if H.degree[v_i] == 0:
         H.remove_node(v_i)
@@ -251,26 +254,31 @@ def locally_connected_solve(graph: nx.Graph):
     U_prime = get_U_prime(H, graph, w)
     H_prime = nx.subgraph(H, W_prime + U_prime).copy()
 
+    tqdm_nodes = tqdm(range(3, len(graph.nodes)))
+    tqdm_nodes.set_description(desc="Creating 3-clique ordering", refresh=True)
+
+    U = set(U)
+
     # Incrementally create a 3-clique ordering for the graph
-    for i in range(3, len(graph.nodes)):
+    for _ in tqdm_nodes:
         # Save the previous iteration for later use
-        V_i_1 = V.copy()
-        W_i_1 = W.copy()
-        U_i_1 = U.copy()
         w_i_1 = w
         W_prime_i_1 = W_prime.copy()
         U_prime_i_1 = U_prime.copy()
-        H_i_1 = H.copy()
-        H_prime_i_1 = H_prime.copy()
 
-        # Creating V_i from V_i-1 and v_i
-        v_i = get_v_i(H_prime_i_1, U_prime_i_1)
+        # Get new v_i and update H accordingly
+        v_i = get_v_i(H_prime, U_prime)
+        update_H(graph, v_i, V, H, W, U)
         V.append(v_i)
+
+        temp_color_dict = color_using_ordering(graph, V)
+
+        if temp_color_dict is None:
+            print('Locally Connected: No 3-coloring possible!\n')
+            return None
 
         if len(V) == len(graph.nodes):
             break
-
-        update_H(graph, v_i, V_i_1, H, W, U, H_i_1, U_i_1)
 
         if w_i_1 in W:
             w = w_i_1

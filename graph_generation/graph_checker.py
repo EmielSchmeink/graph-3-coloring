@@ -1,6 +1,7 @@
 import networkx as nx
 import planarity
 from networkx import Graph
+from tqdm import tqdm
 
 from graph_coloring.exceptions import InvalidGraphException, InvalidColoringException
 
@@ -15,6 +16,15 @@ class GraphChecker:
 
         if not max_3 or invalid_coloring:
             raise InvalidColoringException
+
+    @staticmethod
+    def get_color_offending_edge(graph, coloring_dict):
+        tqdm_edges = tqdm(graph.edges())
+        tqdm_edges.set_description(desc="Looping over edges", refresh=True)
+        for (x, y) in tqdm_edges:
+            if coloring_dict[x] == coloring_dict[y]:
+                tqdm_edges.close()
+                return x, y
 
     def sanity_check_graph(self, graph, path_length=None, cycle_size=None, planarity=None, diameter=None,
                            locally_connected=None, debug=None):
@@ -215,15 +225,18 @@ class GraphChecker:
 
     def check_induced_cycle_using_path(self, graph: Graph, edge, n):
         # Remove the source as a target
-        graph_without_edge = graph.copy()
+        graph_without_edge = graph
         graph_without_edge.remove_edge(edge[0], edge[1])
 
         # Separate the paths containing the new edge, and paths not containing the new edge
+        print("Finding induced paths...")
         paths_0 = self.find_induced_path(graph_without_edge, [edge[0]], n - 1, [edge[1], graph.neighbors(edge[1])])
         paths_1 = self.find_induced_path(graph_without_edge, [edge[1]], n - 1, [edge[0], graph.neighbors(edge[0])])
 
         # Loop over all combinations to form n sized paths from the left and right branch of the edge
-        for length_path_0 in range(n):
+        tqdm_n = tqdm(range(n))
+        tqdm_n.set_description(desc="Looping over path lengths", refresh=True)
+        for length_path_0 in tqdm_n:
             length_path_1 = n - length_path_0
 
             correct_length_path_0 = [path for path in paths_0 if len(path) == length_path_0]
@@ -243,8 +256,10 @@ class GraphChecker:
                         if graph_without_edge.has_edge(endpoint_0, endpoint_1):
                             cycle = path_0.copy()
                             cycle.extend(path_1)
+                            graph.add_edge(edge[0], edge[1])
                             return cycle
 
+        graph.add_edge(edge[0], edge[1])
         return []
 
     def check_crossing_edges(self, graph: Graph, path_0, path_1):
@@ -266,7 +281,6 @@ class GraphChecker:
 
     def check_locally_connected(self, graph, nodes):
         for node in nodes:
-            print(f'Checking locally connectedness for node {node}')
             neighbors = list(graph.neighbors(node))
             induced_neighbors = nx.induced_subgraph(graph, neighbors)
 

@@ -5,7 +5,7 @@ from func_timeout import func_set_timeout
 from graph_coloring.generic.csp.bushy_forest import get_maximal_bushy_forest
 from graph_coloring.generic.csp.k13 import *
 from graph_coloring.generic.csp.list_sat import list_sat_satisfier
-from graph_coloring.misc import color_low_degree_vertices
+from graph_coloring.misc import color_low_degree_vertices, remove_without_copy, add_nodes_with_edges
 from graph_generation.graph_checker import GraphChecker
 
 
@@ -208,7 +208,7 @@ def get_colorings(bushy_forest, k13_list, graph_without_forest_neighbors_k13, gr
     return colors
 
 
-@func_set_timeout(300)
+@func_set_timeout(3600)
 def csp_solve(graph: nx.Graph):
     """
     Get a 3-coloring for the given graph, or indicate that a 3-coloring is not possible, using the CSP algorithm
@@ -217,11 +217,9 @@ def csp_solve(graph: nx.Graph):
     :param graph: The graph to be colored
     :return: Dict of colors for all nodes, or None
     """
-    graph_complete = graph.copy()
-
     # Step 1: If the degree is lower than 3, we want to remove it from the graph
     low_degree_vertices = [vertex_degree[0] for vertex_degree in graph.degree if vertex_degree[1] <= 2]
-    graph.remove_nodes_from(low_degree_vertices)
+    graph, removed_low_degree_edges = remove_without_copy(graph, low_degree_vertices)
 
     # Step 2.1: Remove the cycles with degree 3, and later recursively color them
     # TODO these must be induced cycles
@@ -252,9 +250,7 @@ def csp_solve(graph: nx.Graph):
         bushy_forest_vertices.extend(tree.get_all_nodes())
 
     # Step 4:
-    graph_with_forest = graph.copy()
-    graph_without_forest = graph.copy()
-    graph_without_forest.remove_nodes_from(bushy_forest_vertices)
+    graph_without_forest, removed_bushy_forest_edges = remove_without_copy(graph, bushy_forest_vertices)
 
     k13_list = get_maximal_set_of_k13(graph_without_forest)
 
@@ -268,6 +264,8 @@ def csp_solve(graph: nx.Graph):
     optimized_k13_list = optimize_k13_list(graph_without_k13, k13_list)
 
     # Step 6
+    graph_with_forest = graph_without_forest
+    add_nodes_with_edges(graph_with_forest, removed_bushy_forest_edges)
     graph_without_forest_neighbors_k13 = graph_with_forest.copy()
     forest_vertices_with_neighbors = []
     forest_vertices_with_neighbors.extend(bushy_forest_vertices)
@@ -292,8 +290,11 @@ def csp_solve(graph: nx.Graph):
         print('CSP: No 3-coloring possible!')
         return None
 
+    add_nodes_with_edges(graph, removed_low_degree_edges)
+    add_nodes_with_edges(graph, removed_bushy_forest_edges)
+
     # Color the low degree vertices, cycles and large components efficiently
-    color_low_degree_vertices(graph_complete, low_degree_vertices, colors_dict)
+    color_low_degree_vertices(graph, low_degree_vertices, colors_dict)
 
     # for degree_3_cycle in graph_3_cycle_vertices:
     #     for vertex in degree_3_cycle:

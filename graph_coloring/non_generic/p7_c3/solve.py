@@ -1,24 +1,73 @@
+import time
+
 import networkx as nx
+from tqdm import tqdm
 
 from graph_coloring.generic.csp.list_sat import list_sat_satisfier
-from graph_coloring.misc import intersection
+from graph_coloring.misc import intersection, add_nodes_with_edges, remove_without_copy
 from graph_generation.graph_checker import GraphChecker
 
 
-def find_induced_cycle(graph, c, checker):
+def find_crossing_edge(graph, path0, path1):
+    """
+    Find a crossing edge in two bfs tree paths.
+    :param graph: The BFS tree
+    :param path0: Path to node 0 of the offending edge
+    :param path1: Path to node 1 of the offending edge
+    :return: The nodes that are crossing the paths
+    """
+    for node0 in path0:
+        for node1 in path1:
+            if node0 in path1 and node1 in path0:
+                continue
+
+            if graph.has_edge(node0, node1):
+                return node0, node1
+
+
+def find_induced_cycle(graph, checker):
     """
     Find and return an induced cycle of given size in the given graph.
     :param graph: Graph to find an induced cycle in
-    :param c: Size of the induced cycle
-    :param checker: Checker instance to find an induced cycle
+    :param checker:
     :return: An induced cycle if it exists
     """
-    for edge in graph.edges:
-        cycle = checker.check_induced_cycle_using_path(graph, edge, c)
-        if len(cycle) != 0:
-            return cycle
+    print("P7C3: Running BFS")
+    source_node = list(graph.nodes)[0]
+    bfs_tree = nx.bfs_tree(graph, source_node)
+    bfs_layers = nx.bfs_layers(graph, source_node)
 
-    return None
+    print("P7C3: Checking offending edge")
+    coloring_dict = {}
+    for i, layer in enumerate(bfs_layers):
+        for node in layer:
+            if i % 2 == 0:
+                coloring_dict[node] = 'red'
+            else:
+                coloring_dict[node] = 'blue'
+
+    offending_edge = checker.get_color_offending_edge(graph, coloring_dict)
+
+    path0 = nx.shortest_path(bfs_tree, source_node, offending_edge[0])
+    path1 = nx.shortest_path(bfs_tree, source_node, offending_edge[1])
+
+    node0, node1 = find_crossing_edge(graph, path0, path1)
+
+    cycle = []
+
+    index0 = path0.index(node0)
+    index1 = path1.index(node1)
+
+    for cycle_node_index in range(index0, len(path0)):
+        cycle.append(path0[cycle_node_index])
+
+    for cycle_node_index in range(index1, len(path1)):
+        cycle.append(path1[1 - cycle_node_index])
+
+    induced_cycle = nx.induced_subgraph(graph, cycle)
+    assert nx.number_connected_components(induced_cycle) == 1
+
+    return cycle
 
 
 def get_T_from_graph(graph, c5):
@@ -28,14 +77,20 @@ def get_T_from_graph(graph, c5):
     :param c5: Induced 5 cycle
     :return: The sets T_i of nodes with neighbors in c5, c_{i-1} and c_{i+1}
     """
-    graph_without_c5 = graph.copy()
-    graph_without_c5.remove_nodes_from(c5)
     T = [[], [], [], [], []]
 
+    nodes_without_c5 = list(graph.nodes())
+
+    for node in c5:
+        nodes_without_c5.remove(node)
+
+    tqdm_nodes = tqdm(nodes_without_c5)
+    tqdm_nodes.set_description(desc="Looping over nodes for T", refresh=True)
+
     for i in range(5):
-        for node in graph_without_c5.nodes():
+        for node in tqdm_nodes:
             neighbors = list(graph.neighbors(node))
-            cycle_vertices = [c5[(i-1) % 5], c5[(i+1) % 5]]
+            cycle_vertices = [c5[(i - 1) % 5], c5[(i + 1) % 5]]
             neighbors_in_cycle = intersection(neighbors, cycle_vertices)
             # Sort them to make sure that there are no issues with indices
             cycle_vertices.sort()
@@ -54,12 +109,18 @@ def get_D_from_graph(graph, c5):
     :param c5: Induced 5 cycle
     :return: The sets D_i of nodes with neighbor in c5, c_{i}
     """
-    graph_without_c5 = graph.copy()
-    graph_without_c5.remove_nodes_from(c5)
     D = [[], [], [], [], []]
 
+    nodes_without_c5 = list(graph.nodes())
+
+    for node in c5:
+        nodes_without_c5.remove(node)
+
+    tqdm_nodes = tqdm(nodes_without_c5)
+    tqdm_nodes.set_description(desc="Looping over nodes for D", refresh=True)
+
     for i in range(5):
-        for node in graph_without_c5.nodes():
+        for node in tqdm_nodes:
             neighbors = list(graph.neighbors(node))
             cycle_vertices = [c5[i]]
             neighbors_in_cycle = intersection(neighbors, c5)
@@ -93,14 +154,14 @@ def init_color_dict(graph, c5, T, D):
     :param D: The sets D_i of nodes with neighbor in c5, c_{i}
     :return: Dict containing the list coloring options of nodes
     """
-    graph_without_c5 = graph.copy()
-    graph_without_c5.remove_nodes_from(c5)
     color_dict = {node: ['red', 'green', 'blue'] for node in graph.nodes()}
     color_dict[c5[0]] = ['red']
     color_dict[c5[1]] = ['green']
     color_dict[c5[2]] = ['red']
     color_dict[c5[3]] = ['green']
     color_dict[c5[4]] = ['blue']
+
+    graph_without_c5, removed_edges = remove_without_copy(graph, c5)
 
     for t_1 in T[0]:
         color_dict[t_1] = ['red']
@@ -124,6 +185,8 @@ def init_color_dict(graph, c5, T, D):
         for node in d_i:
             if color_dict[c5[i]][0] in color_dict[node]:
                 color_dict[node].remove(color_dict[c5[i]][0])
+
+    add_nodes_with_edges(graph, removed_edges)
 
     return color_dict
 
@@ -326,13 +389,20 @@ def p7_c3_solve(graph: nx.Graph):
     if nx.is_bipartite(graph):
         return color_bipartite(graph)
 
+    print("P7C3: Finding cycle...")
+    start_time = time.time()
+
     checker = GraphChecker()
-    c5 = find_induced_cycle(graph, 5, checker)
+    c5 = find_induced_cycle(graph, checker)
+
+    total_time = time.time() - start_time
+    print(f"Finding cycle {c5} took {total_time} seconds\n")
 
     if c5 is None:
         # TODO handle this case where we must have a C7
         assert False
 
+    print("P7C3: Getting T and D...")
     T = get_T_from_graph(graph, c5)
     D = get_D_from_graph(graph, c5)
     S = []
@@ -345,13 +415,16 @@ def p7_c3_solve(graph: nx.Graph):
     # Make sure we only get the unique vertices
     S = list(set(S))
 
+    print("P7C3: Initial coloring...")
     color_dict = init_color_dict(graph, c5, T, D)
 
-    graph_without_s = graph.copy()
-    graph_without_s.remove_nodes_from(S)
+    print("P7C3: Splitting ccs...")
+    graph_without_s, removed_edges = remove_without_copy(graph, S)
     ccs_graph_without_s = list(nx.connected_components(graph_without_s))
     W, ccs_without_s_without_w = split_w_and_rest(ccs_graph_without_s)
+    add_nodes_with_edges(graph, removed_edges)
 
+    print("P7C3: Handling ccs...")
     handle_ccs(graph, W, T, D, S, ccs_without_s_without_w, color_dict)
 
     # Leftover W

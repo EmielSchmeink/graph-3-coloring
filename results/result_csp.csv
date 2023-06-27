@@ -1,0 +1,17 @@
+nodes,p,graph_name,method,execution_time,graph_path
+100,0.01,locally_connected,csp,2.25443434715271,graph-nodes-100-p-0.01-path-None-cycle-None-planar-None-diameter-None-locally_connected-True-shuffle-True-11-06-2023-11:11:18.txt
+100,0.03,locally_connected,csp,19.1746666431427,graph-nodes-100-p-0.03-path-None-cycle-None-planar-None-diameter-None-locally_connected-True-shuffle-True-26-05-2023-13:08:58.txt
+100,0.1,planar,csp,0.050534963607788086,graph-nodes-100-p-0.1-path-None-cycle-3-planar-True-diameter-None-locally_connected-None-shuffle-True-26-05-2023-13:09:27.txt
+100,0.5,p7_c3,csp,0.5019910335540771,graph-nodes-100-p-0.5-path-7-cycle-3-planar-None-diameter-None-locally_connected-None-shuffle-True-26-05-2023-12:59:51.txt
+1000,0.03,locally_connected,csp,31.099805116653442,graph-nodes-1000-p-0.03-path-None-cycle-None-planar-None-diameter-None-locally_connected-True-shuffle-True-26-05-2023-13:09:03.txt
+1000,0.1,planar,csp,0.9613115787506104,graph-nodes-1000-p-0.1-path-None-cycle-3-planar-True-diameter-None-locally_connected-None-shuffle-True-26-05-2023-13:09:38.txt
+1000,0.5,p7_c3,csp,155.16119170188904,graph-nodes-1000-p-0.5-path-7-cycle-3-planar-None-diameter-None-locally_connected-None-shuffle-True-26-05-2023-12:59:55.txt
+2000,0.03,locally_connected,csp,339.83842182159424,graph-nodes-2000-p-0.03-path-None-cycle-None-planar-None-diameter-None-locally_connected-True-shuffle-True-26-05-2023-13:09:10.txt
+2000,0.1,planar,csp,1594.6127178668976,graph-nodes-2000-p-0.1-path-None-cycle-3-planar-True-diameter-None-locally_connected-None-shuffle-True-26-05-2023-13:10:53.txt
+2000,0.5,p7_c3,csp,1194.136314868927,graph-nodes-2000-p-0.5-path-7-cycle-3-planar-None-diameter-None-locally_connected-None-shuffle-True-26-05-2023-13:00:06.txt
+3000,0.03,locally_connected,csp,2840.8312718868256,graph-nodes-3000-p-0.03-path-None-cycle-None-planar-None-diameter-None-locally_connected-True-shuffle-True-26-05-2023-13:09:21.txt
+3000,0.1,planar,csp,6.859386920928955,graph-nodes-3000-p-0.1-path-None-cycle-3-planar-True-diameter-None-locally_connected-None-shuffle-True-26-05-2023-13:20:29.txt
+500,0.03,locally_connected,csp,4.305926084518433,graph-nodes-500-p-0.03-path-None-cycle-None-planar-None-diameter-None-locally_connected-True-shuffle-True-26-05-2023-13:08:59.txt
+500,0.1,planar,csp,0.34443092346191406,graph-nodes-500-p-0.1-path-None-cycle-3-planar-True-diameter-None-locally_connected-None-shuffle-True-26-05-2023-13:09:28.txt
+500,0.5,p7_c3,csp,21.698759078979492,graph-nodes-500-p-0.5-path-7-cycle-3-planar-None-diameter-None-locally_connected-None-shuffle-True-26-05-2023-12:59:51.txt
+5000,0.1,planar,csp,35.46125364303589,graph-nodes-5000-p-0.1-path-None-cycle-3-planar-True-diameter-None-locally_connected-None-shuffle-True-09-06-2023-12:05:09.txt
