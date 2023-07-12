@@ -66,20 +66,6 @@
             </Attribute>
           </value>
         </entry>
-        <entry key="&lt;c2780e7a-81c5-4685-a0a0-a7941ac7175e&gt;/tmp/pycharm_project_236/results/result.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="&lt;c2780e7a-81c5-4685-a0a0-a7941ac7175e&gt;/tmp/pycharm_project_236/results/result_csp.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
       </map>
     </option>
   </component>

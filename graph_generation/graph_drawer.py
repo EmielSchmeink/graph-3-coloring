@@ -14,11 +14,18 @@ def draw_graph_with_color_from_dict(graph, color_dict):
     }
 
     for key, value in color_dict.items():
+        if type(list(graph.nodes())[0]) is int:
+            key = int(key)
         nodes[value].append(key)
         nodes['#1f78b4'].remove(key)
 
+    if nx.is_planar(graph):
+        pos = nx.planar_layout(graph)
+
     for node_color, nodelist in nodes.items():
         nx.draw(graph, pos, nodelist=nodelist, node_color=node_color, labels={node: node for node in graph.nodes()})
+
+    plt.savefig('testdemo2.png', transparent=True)
 
     plt.show()
 
@@ -30,8 +37,8 @@ def draw_planar_directed(graph):
 
 def draw_graph(graph, node_colors, edge_colors=None):
     # At this size, you don't get any info and it takes long
-    if len(graph.nodes) > 999:
-        return
+    # if len(graph.nodes) > 1000:
+    #     return
 
     if nx.is_planar(graph):
         nx.draw_planar(graph, node_color=node_colors, edge_color=edge_colors, with_labels=True)
@@ -41,6 +48,9 @@ def draw_graph(graph, node_colors, edge_colors=None):
                 node_color=node_colors, edge_color=edge_colors, with_labels=True)
     else:
         nx.draw_spring(graph, node_color=node_colors, edge_color=edge_colors, with_labels=True)
+
+    plt.savefig('testdemo.png', transparent=True)
+
     plt.show()
 
 

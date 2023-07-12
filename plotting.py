@@ -3,6 +3,11 @@ import networkx as nx
 import pandas as pd
 from tqdm import tqdm
 
+from graph_coloring.generic.sat.solve import sat_solve
+from graph_generation.graph_checker import GraphChecker
+from graph_generation.graph_drawer import draw_graph_with_color_from_dict, draw_graph
+from graph_generation.graph_generator import GraphGenerator
+
 
 def plot_results_for_graph_type(graph_type):
     match graph_type:
@@ -125,7 +130,24 @@ def plot_csp():
     test = 0
 
 
-plot_csp()
-plot_results_for_graph_type('planar')
-plot_results_for_graph_type('locally_connected')
-plot_results_for_graph_type('p7_c3')
+# plot_csp()
+# plot_results_for_graph_type('planar')
+# plot_results_for_graph_type('locally_connected')
+# plot_results_for_graph_type('p7_c3')
+
+# graph = nx.Graph()
+# graph.add_edge(0, 1)
+# graph.add_edge(1, 2)
+# graph.add_edge(2, 0)
+#
+# draw_graph(graph, ['red', 'blue', 'green'])
+
+
+graph_generator = GraphGenerator(checker=GraphChecker)
+# graph, path = graph_generator.find_graphs_with_conditions(1000, 0.1, None, 3, True, None, None, shuffle=True)
+graph, path = graph_generator.find_graphs_with_conditions(50, 0.12, None, None, None, None, True, shuffle=True)
+
+draw_graph(graph, None)
+colors = sat_solve(graph, path)
+if colors is not None:
+    draw_graph_with_color_from_dict(graph, colors)

@@ -288,4 +288,4 @@ class GraphGenerator:
         # Graph passed all checks, save it
         self.write_graph(graph, path)
 
-        return graph
+        return graph, path
